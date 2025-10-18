@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(docker:*)",
+      "Bash(curl:*)",
+      "Bash(start http://localhost:3000)",
+      "Bash(python:*)",
+      "Bash(mv:*)",
+      "Bash(cd:*)",
+      "Read(//c/Users/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

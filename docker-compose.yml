@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:11
+    container_name: seismic_mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+
+  backend:
+    build: ./backend
+    container_name: seismic_backend
+    restart: unless-stopped
+    environment:
+      HUGGINGFACE_API_TOKEN: ${HUGGINGFACE_API_TOKEN}
+      HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL}
+      MARIADB_HOST: ${MARIADB_HOST}
+      MARIADB_PORT: ${MARIADB_PORT}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      USGS_API_URL: ${USGS_API_URL}
+      POLLING_INTERVAL_SECONDS: ${POLLING_INTERVAL_SECONDS}
+      FASTAPI_HOST: ${FASTAPI_HOST}
+      FASTAPI_PORT: ${FASTAPI_PORT}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: ./frontend
+    container_name: seismic_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+volumes:
+  mariadb_data:
