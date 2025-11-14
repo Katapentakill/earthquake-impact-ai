@@ -8,7 +8,17 @@
       "Bash(python:*)",
       "Bash(mv:*)",
       "Bash(cd:*)",
-      "Read(//c/Users/**)"
+      "Read(//c/Users/**)",
+      "Bash(npx create-expo-app@latest:*)",
+      "Bash(tree:*)",
+      "Bash(ls:*)",
+      "Bash(pkill -f \"docker\\|sleep\")",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose exec -T mobile sh -c 'cat > /dev/null')",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

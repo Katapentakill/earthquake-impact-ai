@@ -124,6 +124,9 @@ cd seismic-impact-monitor
 ```
 
 #### 2. Configurar variables de entorno
+
+**IMPORTANTE:** El archivo `.env` contiene contraseñas y tokens. **NO está incluido en Git** por seguridad.
+
 ```bash
 # Copiar archivo de ejemplo
 copy .env.example .env
@@ -132,21 +135,39 @@ copy .env.example .env
 notepad .env
 ```
 
+⚠️ **Paso crítico para usuarios de dispositivos móviles:**
+
+Si planeas usar la aplicación móvil en Expo Go:
+1. Encuentra tu IP de PC: `ipconfig` → busca "IPv4 Address" (ej: 192.168.1.126)
+2. Reemplaza `192.168.1.126` en `.env`:
+   - `EXPO_PUBLIC_API_URL=http://tu-ip:8000/api`
+   - `EXPO_PUBLIC_WEBSOCKET_URL=ws://tu-ip:8000/api/ws`
+3. Reemplaza también en `docker-compose.yml` (sección `mobile:`)
+
+Ver [DEPLOYMENT.md](DEPLOYMENT.md) para instrucciones detalladas.
+
 Contenido del `.env`:
 ```env
 # Hugging Face
 HUGGINGFACE_API_TOKEN=hf_tu_token_aqui
 HUGGINGFACE_MODEL=Qwen/Qwen2.5-7B-Instruct
 
-# Base de datos
-MYSQL_ROOT_PASSWORD=root_password_2025
-MYSQL_DATABASE=seismic_db
-MYSQL_USER=seismic_user
-MYSQL_PASSWORD=seismic_password_2025
+# Base de datos (MariaDB)
+MARIADB_ROOT_PASSWORD=root_password_2025
+MARIADB_DATABASE=seismic_db
+MARIADB_USER=seismic_user
+MARIADB_PASSWORD=seismic_password_2025
+MARIADB_HOST=db
+MARIADB_PORT=3306
 
-# API
-API_URL=http://localhost:8000
-NEXT_PUBLIC_API_URL=http://localhost:8000
+# Backend API
+USGS_API_URL=https://earthquake.usgs.gov/fdsnws/event/1/query
+POLLING_INTERVAL_SECONDS=180
+FASTAPI_HOST=0.0.0.0
+FASTAPI_PORT=8000
+
+# Frontend
+NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
 
 #### 3. Iniciar servicios
@@ -301,9 +322,9 @@ seismic_frontend   up          0.0.0.0:3000->3000/tcp
 
 - **[📘 Backend README](backend/README.md)** - Arquitectura, servicios, modelos, API
 - **[📗 Frontend README](frontend/README.md)** - Componentes, estructura, UI/UX
-- **[📕 API Documentation](http://localhost:8000/docs)** - Swagger UI interactivo
-- **[📙 Quick Start Guide](QUICK_START.md)** - Guía de inicio rápido
-- **[📔 Architecture Guide](ARCHITECTURE.md)** - Arquitectura detallada
+- **[📕 API Documentation](http://localhost:8000/docs)** - Swagger UI interactivo (cuando los servicios estén corriendo)
+- **[📙 Deployment Guide](DEPLOYMENT.md)** - Configuración multi-dispositivo, WiFi LAN, producción
+- **[📔 Environment Variables](.env.example)** - Plantilla de configuración con explicaciones
 
 ---
 

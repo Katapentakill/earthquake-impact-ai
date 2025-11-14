@@ -64,5 +64,28 @@ services:
       - /app/.next
     command: npm run dev
 
+  mobile:
+    build: ./mobile
+    container_name: seismic_mobile
+    restart: unless-stopped
+    environment:
+      # CRITICAL: Use PC IP (192.168.1.126) NOT Docker service name "backend"
+      # The phone runs Expo Go which cannot resolve Docker service names
+      EXPO_PUBLIC_API_URL: "http://192.168.1.126:8000/api"
+      EXPO_PUBLIC_WEBSOCKET_URL: "ws://192.168.1.126:8000/api/ws"
+      # Metro bundler configuration for WiFi LAN
+      REACT_NATIVE_PACKAGER_HOSTNAME: "192.168.1.126"
+      EXPO_PACKAGER_HOSTNAME: "192.168.1.126"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - backend
+    volumes:
+      - ./mobile:/app
+      - /app/node_modules
+      - /app/.expo
+    stdin_open: true
+    tty: true
+
 volumes:
   mariadb_data:
