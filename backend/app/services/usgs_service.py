@@ -51,6 +51,11 @@ class USGSService:
         }
 
         try:
+            logger.debug(f"📡 USGS API Call Details:")
+            logger.debug(f"   URL: {self.api_url}")
+            logger.debug(f"   Time range: {start_time.strftime('%Y-%m-%d %H:%M:%S')} to {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            logger.debug(f"   Min magnitude: {min_magnitude}")
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(self.api_url, params=params)
                 response.raise_for_status()
@@ -62,11 +67,17 @@ class USGSService:
                     if earthquake:
                         earthquakes.append(earthquake)
 
-                logger.info(f"Fetched {len(earthquakes)} earthquakes from USGS")
+                logger.info(f"   ✅ USGS API Response: Retrieved {len(earthquakes)} earthquake(s) from USGS")
+
+                # Log details if earthquakes were found
+                if earthquakes:
+                    for eq in earthquakes:
+                        logger.info(f"      - {eq['event_id']}: Magnitude {eq['magnitud']}, Location: {eq['lugar']}")
+
                 return earthquakes
 
         except Exception as e:
-            logger.error(f"Error fetching earthquakes from USGS: {e}")
+            logger.error(f"   ❌ USGS API Error: Failed to fetch earthquakes from USGS: {e}", exc_info=True)
             return []
 
     def _parse_earthquake_feature(self, feature: Dict[str, Any]) -> Optional[Dict[str, Any]]:
