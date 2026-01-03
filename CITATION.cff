@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Tapia Olmedo"
+  given-names: "Alexander Gubier Oscar"
+title: "Sistema Global de Monitoreo Sísmico con IA"
+version: 1.0.0
+date-released: 2025-11-21
+url: "https://github.com/tu-usuario/seismic-impact-monitor"
+license: MIT
