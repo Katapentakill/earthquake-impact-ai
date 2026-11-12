@@ -119,8 +119,8 @@ docker compose version    # >= 2.0
 
 #### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/seismic-impact-monitor.git
-cd seismic-impact-monitor
+git clone https://github.com/Katapentakill/earthquake-impact-ai.git
+cd earthquake-impact-ai
 ```
 
 #### 2. Configurar variables de entorno
@@ -149,14 +149,14 @@ Ver [DEPLOYMENT.md](DEPLOYMENT.md) para instrucciones detalladas.
 Contenido del `.env`:
 ```env
 # Hugging Face
-HUGGINGFACE_API_TOKEN=hf_tu_token_aqui
+HUGGINGFACE_API_TOKEN=<tu_token_de_huggingface>
 HUGGINGFACE_MODEL=Qwen/Qwen2.5-7B-Instruct
 
 # Base de datos (MariaDB)
-MARIADB_ROOT_PASSWORD=root_password_2025
+MARIADB_ROOT_PASSWORD=cambia_esta_clave_root
 MARIADB_DATABASE=seismic_db
 MARIADB_USER=seismic_user
-MARIADB_PASSWORD=seismic_password_2025
+MARIADB_PASSWORD=cambia_esta_clave
 MARIADB_HOST=db
 MARIADB_PORT=3306
 
@@ -400,7 +400,7 @@ docker compose ps
 
 ```bash
 # Conectarse a MariaDB
-docker compose exec db mariadb -useismic_user -pseismic_password_2025 seismic_db
+docker compose exec db mariadb -useismic_user -p seismic_db
 
 # Consultas útiles
 SELECT COUNT(*) FROM eventos_sismicos;
@@ -408,7 +408,7 @@ SELECT * FROM eventos_sismicos ORDER BY fecha_utc DESC LIMIT 10;
 SELECT pais, SUM(muertes_estimadas) FROM impactos_pais GROUP BY pais;
 
 # Exportar datos
-docker compose exec db mariadb-dump -useismic_user -pseismic_password_2025 seismic_db > backup.sql
+docker compose exec db mariadb-dump -useismic_user -p seismic_db > backup.sql
 ```
 
 ### API (curl)
@@ -577,7 +577,7 @@ Este proyecto está bajo la Licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 ## 👥 Autores
 
-- **Tu Nombre** - *Desarrollo completo* - [GitHub](https://github.com/tu-usuario)
+- **Alexander Tapia Olmedo** - *Desarrollo completo* - [GitHub](https://github.com/Katapentakill)
 
 ---
 
@@ -596,10 +596,8 @@ Este proyecto está bajo la Licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 ¿Necesitas ayuda o tienes preguntas?
 
-- 📧 **Email**: tu-email@ejemplo.com
-- 🐛 **Issues**: [GitHub Issues](https://github.com/tu-usuario/seismic-impact-monitor/issues)
-- 💬 **Discusiones**: [GitHub Discussions](https://github.com/tu-usuario/seismic-impact-monitor/discussions)
-- 📖 **Wiki**: [GitHub Wiki](https://github.com/tu-usuario/seismic-impact-monitor/wiki)
+- 💼 **Contacto**: [LinkedIn](https://www.linkedin.com/in/alexander-gubier-oscar-tapia-olmedo-10aa3725b)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/Katapentakill/earthquake-impact-ai/issues)
 
 ---
 
