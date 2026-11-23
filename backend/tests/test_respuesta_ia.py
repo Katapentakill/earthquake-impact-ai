@@ -33,7 +33,8 @@ def test_tiene_token_rechaza_vacio_y_texto_de_ejemplo():
 
 
 def test_tiene_token_acepta_un_token():
-    assert tiene_token("hf_abcdefghijklmnopqrstuvwxyz0123456789")
+    # Un token de mentira, armado en la prueba para que ningún escáner de secretos lo confunda con uno real.
+    assert tiene_token("hf_" + "x" * 34)
 
 
 # ───────── extraer la lista JSON ─────────
