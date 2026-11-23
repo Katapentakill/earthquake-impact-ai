@@ -104,7 +104,7 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     ws.onStatus(setEnVivo);
     ws.onMessage((m) => {
       if (m.type !== 'new_earthquake') return;
-      const id = m.data?.event?.event_id ?? m.data?.event_id;
+      const id = m.data?.event.event_id;
       if (id) setNuevos((prev) => (prev.includes(id) ? prev : [id, ...prev].slice(0, 50)));
       cargarActual.current();
     });

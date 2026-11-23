@@ -1,11 +1,10 @@
-// Copia de frontend/src/lib/websocket.ts (misma lógica; solo cambia el tipo del aviso). Reconecta solo cada 5 s y avisa del estado de la conexión.
-import type { SeismicEvent } from './types';
+// Copia de frontend/src/lib/websocket.ts (misma lógica; solo cambia de dónde se importan los tipos). Reconecta solo cada 5 s y avisa del estado de la conexión.
+import type { EventWithImpacts } from './types';
 
 export type WebSocketMessage = {
   type: 'connection' | 'new_earthquake' | 'pong' | 'echo';
   message?: string;
-  // El backend manda el evento como diccionario plano (event_id, magnitud, lugar…); se acepta también {event, impacts}.
-  data?: Partial<SeismicEvent> & { event?: SeismicEvent };
+  data?: EventWithImpacts;
   timestamp?: number;
 };
 
