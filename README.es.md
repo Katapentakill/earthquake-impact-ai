@@ -43,7 +43,7 @@ La interfaz original tenía degradados azul y morado sobre fondo blanco, estaba 
 | ![Tema oscuro](docs/img/resumen-oscuro.png) | ![Un sismo elegido: mapa acercado y panel de impacto](docs/img/sismo-crema.png) |
 | ![Celular, crema](docs/img/celular-crema.png) | ![Celular, oscuro](docs/img/celular-oscuro.png) |
 
-El diseño se prototipó primero como una página HTML interactiva con los mismos eventos reales: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (descárgala y ábrela en un navegador). Las capturas son instantáneas de datos en vivo del 23 de noviembre de 2026.
+El diseño se prototipó primero como una página HTML interactiva con los mismos eventos reales: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (descárgala y ábrela en un navegador). Un recorrido de 2,5 minutos (subtítulos en español, sin voz): [ver en YouTube](https://youtu.be/45RhoPXFj9A) ([English version](https://youtu.be/scIQnkal5zQ)). Las capturas son instantáneas de datos en vivo del 23 de noviembre de 2026.
 
 ## Inicio rápido
 
