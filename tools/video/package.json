@@ -6,7 +6,8 @@
     "grabar": "electron grabar.js --js 20 --py 19",
     "componer": "node componer.mjs",
     "video": "npm run grabar && npm run componer",
-    "revisar": "node revisar.mjs es && node revisar.mjs en"
+    "revisar": "node revisar.mjs es && node revisar.mjs en",
+    "ui": "electron ../capturas/verificar_ui.js"
   },
   "dependencies": {
     "electron": "^36.4.0",

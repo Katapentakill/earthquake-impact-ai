@@ -784,3 +784,12 @@ MIT License - Ver archivo principal de LICENSE del proyecto
 [Volver al README principal](../README.md)
 
 </div>
+
+---
+
+## Novedades del rediseño (noviembre de 2026)
+
+- **Estimación de respaldo por profundidad.** Cuando el modelo de IA no está disponible, [`app/services/respaldo.py`](app/services/respaldo.py) estima el impacto por reglas y lo atenúa según la profundidad (superficial 1, intermedia 0,4, profunda 0,02). Antes un sismo de magnitud 6,5 a 601 km daba 150 muertes; ahora da 3. Es una función pura, sin red ni base de datos.
+- **Resumen de impactos en la lista.** `GET /api/events/` devuelve, por cada evento, `nivel_destruccion` (el más alto), `muertes_estimadas`, `heridos_estimados`, `perdidas_monetarias_usd` (sumas) y `estimacion` (`reglas` o `ia`), calculados por [`app/services/resumen.py`](app/services/resumen.py).
+- **Eco de SQL apagado.** `SQL_ECHO=true` lo vuelve a encender para depurar.
+- **Pruebas.** `pip install -r requirements-dev.txt` y `python -m pytest` (19 pruebas de las dos funciones puras; no necesitan FastAPI ni MariaDB).

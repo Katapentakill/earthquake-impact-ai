@@ -26,6 +26,7 @@ dist/
 
 # Video: lo que graba y monta tools/video queda fuera del repositorio
 tools/video/salida/
+tools/capturas/salida/
 *.mp4
 *.mkv
 *.wav

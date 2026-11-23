@@ -39,6 +39,7 @@ services:
       FASTAPI_HOST: ${FASTAPI_HOST}
       FASTAPI_PORT: ${FASTAPI_PORT}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      SQL_ECHO: ${SQL_ECHO:-false}
     ports:
       - "8000:8000"
     depends_on:
