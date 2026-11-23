@@ -1,0 +1,28 @@
+# Guion del video (≈ 2:28, solo la app, sin voz)
+
+Video silencioso con **subtítulos en español e inglés**, un círculo en cada clic, sonido de clics y de escritura y música ambiental a poco volumen (sintetizada, sin derechos de autor). Se graba solo la ventana de la app corriendo, con los sismos reales del momento. Los subtítulos salen de `tools/video/componer.mjs` y se sincronizan con la hora real de cada escena; las cifras y los lugares entre llaves (`{…}`) se toman de lo que mostraba la pantalla durante la toma, no de texto escrito a mano. La interfaz está en español en las dos versiones.
+
+Cómo se graba y se monta: [`guia_video.md`](guia_video.md). Los tiempos de abajo son los de la última grabación (23 de noviembre de 2026, con `{total}` = 17 sismos; el mayor, M 6,5 en *Vanuatu region* a 601 km; el segundo, superficial, a 44 km).
+
+| Tiempo | Escena | Acción en pantalla | Subtítulo (ES) | Subtitle (EN) |
+|---|---|---|---|---|
+| 0:00 | `portada` | Tarjeta con la marca, el título y «FastAPI · Next.js · MariaDB · USGS en tiempo real». | Monitor sísmico global: sismos del USGS en tiempo real, con estimación de impacto. | Global seismic monitor: live USGS earthquakes with an impact estimate. |
+| 0:06 | `antes-1` | Tarjeta «ANTES» con la captura de la interfaz original. | Antes: degradados azul y morado, interfaz en inglés y un fondo blanco que cansa la vista. | Before: blue and purple gradients, an English interface and a white background that tires the eyes. |
+| 0:13 | `antes-2` | Captura de la versión en celular de la interfaz original. | En el celular, los filtros ocupaban la primera pantalla. Y sin IA, un sismo a 601 km de profundidad estimaba 150 muertos. | On a phone, the filters filled the first screen. And without AI, a quake 601 km deep was estimated at 150 deaths. |
+| 0:20 | `resumen-1` | Tema crema; el cursor recorre las cuatro tarjetas de resumen. | Ahora: {total} sismos en las últimas 24 horas. El mayor, de magnitud {mayorMag}, en {mayorLugar}. | Now: {total} earthquakes in the last 24 hours. The largest, magnitude {mayorMag}, at {mayorLugar}. |
+| 0:29 | `mapa-1` | La página baja hasta el mapa; el cursor lo recorre. | El mapa muestra cada epicentro con el color de su magnitud, sobre un tema crema que no cansa la vista. | The map shows every epicenter in the color of its magnitude, on a cream theme that is easy on the eyes. |
+| 0:37 | `panel-1` | El cursor va al panel del sismo mayor: «Cálculo por reglas · sin IA». | Sin IA, el impacto sale de reglas. Un sismo profundo ({mayorProf} km) casi no se siente en superficie. | Without AI, the impact comes from rules. A deep quake ({mayorProf} km) is barely felt at the surface. |
+| 0:44 | `mapa-2` | Clic en el marcador de un sismo superficial; el panel cambia. | Otro sismo, superficial ({otroProf} km): aquí el cálculo estima más heridos que para el profundo. | Another quake, shallow ({otroProf} km): here the estimate has more injured than for the deep one. |
+| 0:52 | `filtros-1` | Clic en «5,0 o más», luego «Superficial» y «Restablecer». | Filtros por magnitud y profundidad: el mapa, los gráficos y la tabla se actualizan juntos. | Filters by magnitude and depth: the map, charts and table update together. |
+| 1:02 | `filtros-2` | Se escribe el nombre de un país en la búsqueda. | La búsqueda filtra por lugar o ID mientras escribes. | Search filters by place or ID as you type. |
+| 1:09 | `periodo` | Clic en «7 días» y de vuelta a «24 horas». | El período se amplía a 7 o 30 días. | The period extends to 7 or 30 days. |
+| 1:15 | `graficos` | La página baja al gráfico de magnitud en el tiempo. | La magnitud de cada sismo a lo largo de las últimas 24 horas. | The magnitude of every quake over the last 24 hours. |
+| 1:24 | `graficos-2` | Histograma por magnitud y barras por profundidad. | Y cuántos sismos hay por tramo de magnitud y por profundidad. | And how many quakes there are by magnitude range and by depth. |
+| 1:32 | `tabla` | La tabla; clic en el encabezado «Magnitud». | La tabla se ordena por cualquier columna y se puede exportar a CSV. | The table sorts by any column and can be exported to CSV. |
+| 1:37 | `tabla-2` | Clic en una fila; la página sube y el mapa vuela hasta ese sismo. | Un clic en una fila lleva el mapa hasta ese sismo. | A click on a row takes the map to that quake. |
+| 1:45 | `oscuro` | Tema oscuro: recorrido por el tablero y por el gráfico; vuelta a crema. | El tema oscuro cálido. El contraste del texto es de al menos 4,5 a 1 en los dos temas, medido por script. | The warm dark theme. Text contrast is at least 4.5 to 1 in both themes, measured by script. |
+| 2:01 | `celular` | Tarjeta con la app en celular, en crema y en oscuro. | Y se adapta al celular. | And it adapts to phones. |
+| 2:07 | `como` | Tarjeta «Cómo está hecho»: USGS → FastAPI → MariaDB → Next.js, y 20 + 19 pruebas. | Cómo está hecho: el backend consulta al USGS cada 3 minutos, guarda en MariaDB y avisa por WebSocket. 20 pruebas de JavaScript y 19 de Python. | How it is built: the backend polls USGS every 3 minutes, stores in MariaDB and notifies over WebSocket. 20 JavaScript and 19 Python tests. |
+| 2:19 | `cierre` | Tarjeta con el nombre, los créditos de datos y mapa, y el repositorio. | Rediseño, estimación por profundidad, pruebas y documentación: Alexander Tapia. Datos del USGS; mapa de OpenStreetMap. | Redesign, depth-based estimate, tests and documentation: Alexander Tapia. Data from USGS; map from OpenStreetMap. |
+
+Si el sismo mayor del día no es profundo o el segundo no es superficial, el subtítulo de `mapa-2` pasa a un texto genérico («Un clic en el mapa cambia el sismo del panel») para no afirmar algo que la pantalla no muestra.
