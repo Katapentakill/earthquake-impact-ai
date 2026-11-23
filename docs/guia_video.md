@@ -52,3 +52,17 @@ Subidos el 23 de noviembre de 2026 al canal Alexander Gubier Tapia Olmedo como *
 | English | <https://youtu.be/scIQnkal5zQ> |
 
 Ajustes del formulario de subida: «No, no es contenido creado para niños»; sin promoción pagada; uso de IA: «No» (es una grabación de la app con sismos reales y sonidos sintetizados por código); idioma del video: español (Latinoamérica) e inglés (Estados Unidos). Al abrir YouTube Studio hay que cambiar a la cuenta y al canal correctos antes de subir: por defecto abre otro canal de la misma cuenta de Google.
+
+## Video del cliente móvil
+
+Un segundo video, de 2:18, graba el cliente Expo corriendo en el navegador (`expo start --web`) en una ventana de 390×844, con el mismo método y con tres archivos propios en `tools/video/`: `grabar_movil.js`, `director_movil.js` y `componer_movil.mjs` (`npm run video:movil`, y `npm run revisar:movil` para el cuadro por escena). Pesa 5,8 MB por idioma. El teléfono queda a la izquierda de un lienzo de 1920×1080 y los subtítulos a la derecha, con una etiqueta fija que dice qué se está viendo: **«vista web a tamaño de teléfono»**. Es la versión web de la app, no un teléfono: el mapa que se ve es el de Leaflet, no el nativo, y el video lo dice.
+
+Recorrido: la portada, el «antes» (las capturas del cliente original, con la profundidad vacía y «Total de eventos: 1»), el resumen del día, los filtros y la búsqueda, el detalle de un sismo, el mapa, las alertas, los ajustes, el tema oscuro, cómo está hecho y los créditos.
+
+Lo que se aprendió:
+
+1. **Dos sismos pueden llamarse igual.** La primera toma abrió el detalle de un M 4,5 de «Vanuatu region» mientras el subtítulo hablaba del M 6,5 que también era «Vanuatu region». El director ahora busca la fila por magnitud y lugar, y **falla la toma si el detalle abierto no tiene la profundidad que dirá el subtítulo**.
+2. **El subtítulo no puede contradecir la pantalla.** «Casi no se siente en superficie» chocaba con las 3 muertes que mostraba el detalle; ahora el subtítulo cita la cifra que el director leyó de la pantalla.
+3. **`componer_movil.mjs` avisa si un subtítulo dura menos de lo que hace falta para leerlo** (más de 21 caracteres por segundo). Con ese aviso se alargaron cuatro escenas.
+4. **No se montó una alerta «en vivo».** Se podría borrar un sismo de la base para que el backend lo vuelva a ingresar durante la toma, pero la llegada depende de la consulta periódica (hasta 3 minutos) y no se puede fijar en el guion. El video dice que las alertas llegan por WebSocket y muestra el indicador «En vivo»; el aviso real se probó aparte (ver las decisiones).
+5. Las tarjetas y la interfaz están en español en las dos versiones; solo cambian los subtítulos.

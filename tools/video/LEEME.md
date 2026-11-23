@@ -9,7 +9,17 @@ npm run revisar --prefix tools/video   # cuadro por escena + hoja de contactos -
 npm run ui --prefix tools/video        # verificación de la interfaz y auditoría de contraste (tools/capturas)
 ```
 
-La app tiene que estar encendida (`docker compose up -d db backend frontend`) y con sismos cargados.
+Para el cliente móvil (Expo en el navegador, ventana de 390×844) hay un kit paralelo que no toca el de la web:
+
+```powershell
+cd mobile; $env:EXPO_PUBLIC_API_URL = "http://localhost:8000/api"; npx expo start --web --port 8081   # en otra terminal, con el backend encendido
+npm run video:movil --prefix tools/video      # graba y monta -> tools/video/salida/movil/video_es.mp4 y video_en.mp4
+npm run revisar:movil --prefix tools/video    # cuadro por escena + hoja de contactos
+```
+
+`grabar_movil.js`, `director_movil.js` y `componer_movil.mjs` hacen lo mismo que sus pares de la web, con un «dedo» en lugar del cursor y los subtítulos a la derecha del teléfono. Ver [la guía](../../docs/guia_video.md#video-del-cliente-móvil).
+
+La app de la web tiene que estar encendida (`docker compose up -d db backend frontend`) y con sismos cargados.
 
 - `director.js`: se inyecta en la página; cursor, anillos de clic, tarjetas, lectura de los datos del día y registro de tiempos.
 - `grabar.js`: abre la app en Electron y captura la página a 30 cuadros por segundo hacia ffmpeg.
