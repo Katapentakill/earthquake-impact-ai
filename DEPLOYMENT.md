@@ -99,8 +99,9 @@ Cuando ejecutas Docker, los contenedores pueden comunicarse entre sí usando **n
 
 #### Escenario 3: Mobile App (Tu Teléfono) → Backend (Docker)
 **NO funciona con:** `http://backend:8000`
-**Funciona con:** `http://192.168.1.126:8000`
-**Porque:** El teléfono está FUERA de la red Docker, necesita tu dirección IP real
+**Funciona con:** `http://<IP de tu PC>:8000`
+**Porque:** El teléfono está FUERA de la red Docker, necesita la dirección real de tu PC en la red local.
+**La app la deduce sola:** toma la dirección del servidor de Expo (que corre en tu PC) y le agrega el puerto 8000 (`mobile/lib/direccion.ts`, con pruebas). Ya no hay una IP escrita a mano en el código.
 
 ---
 
@@ -136,50 +137,43 @@ en0: flags=8863...
 
 #### Requisitos:
 - ✅ Teléfono y PC en la **misma red WiFi**
-- ✅ Firewall permite puerto 8000 y 8081
-- ✅ Tu PC IP es conocida (ej: 192.168.1.126)
+- ✅ El firewall deja pasar los puertos 8000 (API) y 8081 (Expo)
+- ✅ La app Expo Go en el teléfono ([Android](https://play.google.com/store/apps/details?id=host.exp.exponent) / [iOS](https://apps.apple.com/app/expo-go/id982107779))
 
-#### Pasos:
+#### Pasos (sin Docker, lo más simple):
 
-**1. Encuentra tu IP de PC**
 ```bash
-# Windows
-ipconfig
+docker compose up -d db backend      # la API en http://<IP de tu PC>:8000
+cd mobile
+npm install
+npx expo start --lan                 # muestra un código QR
 ```
 
-**2. Abre `.env` y actualiza:**
+Escanea el QR con Expo Go (Android) o con la cámara (iOS). La app encuentra la API sola: usa la dirección del servidor de Expo y el puerto 8000. Si tu API está en otro puerto o en otro equipo, define `EXPO_PUBLIC_API_URL` (por ejemplo `http://192.168.1.50:9000/api`) antes de `npx expo start`; el WebSocket se deduce de ella (`/ws`).
+
+#### Pasos (con el servicio `mobile` de Docker):
+
+**1.** Averigua la IP de tu PC con `ipconfig`.
+
+**2.** En `.env` escribe solo esa IP, para que Expo la anuncie en el QR (dentro del contenedor no la conoce):
 ```env
-# Reemplaza 192.168.1.126 con tu IP real
-EXPO_PUBLIC_API_URL=http://192.168.1.126:8000/api
-EXPO_PUBLIC_WEBSOCKET_URL=ws://192.168.1.126:8000/api/ws
+LAN_IP=192.168.1.XXX
 ```
 
-**3. Abre `docker-compose.yml` y actualiza también:**
-
-Busca la sección `mobile:` y reemplaza:
-```yaml
-mobile:
-  ...
-  environment:
-    EXPO_PUBLIC_API_URL: "http://192.168.1.126:8000/api"         # ← CAMBIAR IP
-    EXPO_PUBLIC_WEBSOCKET_URL: "ws://192.168.1.126:8000/api/ws"  # ← CAMBIAR IP
-    REACT_NATIVE_PACKAGER_HOSTNAME: "192.168.1.126"               # ← CAMBIAR IP
-    EXPO_PACKAGER_HOSTNAME: "192.168.1.126"                       # ← CAMBIAR IP
-```
-
-**4. Reinicia el servicio móvil:**
+**3.** Levanta el servicio y lee el QR:
 ```bash
-docker compose down mobile
 docker compose up -d --build mobile
-```
-
-**5. Abre Expo Go en tu teléfono:**
-- Descarga [Expo Go](https://expo.dev/clients) desde App Store o Google Play
-- Abre la app
-- Escanea el código QR que aparece en los logs:
-```bash
 docker logs seismic_mobile
 ```
+
+#### Para verlo en el navegador de la PC (sin teléfono):
+
+```bash
+cd mobile
+EXPO_PUBLIC_API_URL=http://localhost:8000/api npx expo start --web --port 8081
+```
+
+El navegador necesita que el backend acepte el origen `http://localhost:8081` (ya viene en `CORS_ORIGINS` de `.env.example`). En la web el mapa lo dibuja Leaflet, no el mapa nativo del teléfono; ver [mobile/README.md](mobile/README.md) para lo que esta vista no puede comprobar.
 
 ---
 
@@ -202,12 +196,8 @@ npm run dev
 ```bash
 cd mobile
 npm install
-# En .env o variables de entorno:
-EXPO_PUBLIC_API_URL=http://localhost:8000/api
-EXPO_PUBLIC_WEBSOCKET_URL=ws://localhost:8000/api/ws
-
-npm start -- --lan
-# Escanea el QR con Expo Go
+npm test                  # 30 pruebas: la lógica compartida con la web, el resolvedor de direcciones y los ajustes
+npx expo start --lan      # escanea el QR con Expo Go; la API se deduce sola
 ```
 
 ---
@@ -221,9 +211,8 @@ Para desplegar en un servidor remoto (ej: AWS, DigitalOcean):
 # Para frontend (en la red Docker)
 NEXT_PUBLIC_API_URL=http://backend:8000
 
-# Para móvil (desde internet)
-EXPO_PUBLIC_API_URL=https://tu-dominio.com:8000/api
-EXPO_PUBLIC_WEBSOCKET_URL=wss://tu-dominio.com:8000/api/ws
+# Para móvil (desde internet): el WebSocket se deduce de esta (wss://tu-dominio.com/ws)
+EXPO_PUBLIC_API_URL=https://tu-dominio.com/api
 ```
 
 **2. Configura CORS en `.env`:**
@@ -239,8 +228,7 @@ frontend:
 
 mobile:
   environment:
-    EXPO_PUBLIC_API_URL: https://tu-dominio.com:8000/api
-    EXPO_PUBLIC_WEBSOCKET_URL: wss://tu-dominio.com:8000/api/ws
+    EXPO_PUBLIC_API_URL: https://tu-dominio.com/api
 ```
 
 ---
@@ -249,12 +237,9 @@ mobile:
 
 ### ❌ Error: "Unable to connect to http://backend:8000/api"
 
-**Causa:** La app móvil intenta conectar con el nombre de servicio Docker, que no existe fuera de Docker.
+**Causa:** Se definió `EXPO_PUBLIC_API_URL` con el nombre de servicio Docker, que no existe fuera de Docker.
 
-**Solución:**
-1. Verifica tu IP real: `ipconfig`
-2. Reemplaza `192.168.1.126` con tu IP en `.env` y `docker-compose.yml`
-3. Reinicia mobile: `docker compose restart mobile`
+**Solución:** quita esa variable (la app deduce la dirección de la PC) o ponle la IP real de tu PC: `http://192.168.1.XXX:8000/api`. En **Ajustes → Conexión** la app muestra la dirección que está usando.
 
 ### ❌ Error: "Network request failed" en teléfono
 
@@ -269,19 +254,14 @@ ipconfig  # Ver IP de PC
 # 2. Verifica conectividad
 ping <tu-ip>  # Desde PC hacia teléfono (requiere apps adicionales)
 # O simplemente intenta acceder desde navegador del teléfono:
-# http://192.168.1.126:8000/docs
+# http://<IP de tu PC>:8000/docs
 ```
 
 ### ❌ Error: "Metro bundler not connecting"
 
-**Causa:** `REACT_NATIVE_PACKAGER_HOSTNAME` es incorrecto.
+**Causa:** Con el servicio `mobile` de Docker, Expo anuncia la dirección que le da `LAN_IP`; si falta o es incorrecta, el QR apunta a una dirección que el teléfono no alcanza.
 
-**Solución:**
-```bash
-# En docker-compose.yml, asegúrate que:
-REACT_NATIVE_PACKAGER_HOSTNAME: "192.168.1.126"  # Tu IP real
-EXPO_PACKAGER_HOSTNAME: "192.168.1.126"
-```
+**Solución:** en `.env` pon `LAN_IP=` con la IP de tu PC (`ipconfig`) y `docker compose up -d --force-recreate mobile`. O corre Expo sin Docker: `cd mobile && npx expo start --lan`.
 
 ### ❌ Error: "MARIADB_USER not found"
 
@@ -318,11 +298,7 @@ Antes de ejecutar en un nuevo dispositivo:
 
 - [ ] Archivo `.env` creado (copia de `.env.example`)
 - [ ] Token Hugging Face agregado a `.env`
-- [ ] Tu IP de PC identificada con `ipconfig`
-- [ ] IP reemplazada en `.env`:
-  - `EXPO_PUBLIC_API_URL`
-  - `EXPO_PUBLIC_WEBSOCKET_URL`
-- [ ] IP reemplazada en `docker-compose.yml` (sección `mobile:`)
+- [ ] Para el servicio `mobile` de Docker: tu IP de PC (`ipconfig`) escrita en `.env` como `LAN_IP`
 - [ ] Teléfono en la misma red WiFi que PC
 - [ ] Docker running: `docker compose up -d`
 - [ ] Verificar logs: `docker compose logs -f mobile`
@@ -335,7 +311,7 @@ Antes de ejecutar en un nuevo dispositivo:
 |-----------|------------------|-----------------|
 | Backend → DB | `db:3306` | N/A |
 | Frontend → Backend | `backend:8000` | `http://localhost:8000` |
-| Mobile → Backend | ❌ NO! | `http://192.168.1.126:8000` |
+| Mobile → Backend | ❌ NO! | `http://<IP de tu PC>:8000` (la app la deduce) |
 | Browser → Frontend | N/A | `http://localhost:3000` |
 | Browser → API | N/A | `http://localhost:8000/docs` |
 
@@ -350,5 +326,4 @@ Antes de ejecutar en un nuevo dispositivo:
 
 ---
 
-**Última actualización:** Noviembre 2025
-**Estado:** Totalmente funcional ✅
+**Última actualización:** 23 de noviembre de 2026 (cliente móvil rediseñado; ya no lleva una IP escrita a mano)

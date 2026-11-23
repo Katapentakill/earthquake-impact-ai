@@ -1,50 +1,97 @@
-# Welcome to your Expo app 👋
+# Seismic monitor: phone client (Expo)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The phone client of the seismic monitor: the same USGS earthquakes and impact estimates as the web interface, in an **Expo 54** app (React Native 0.81, `expo-router`, TypeScript) with the same cream and dark themes. It talks to the FastAPI backend of this repository over REST and a WebSocket.
 
-## Get started
+> Español: lo mismo, con los pasos para correrlo en [DEPLOYMENT.md](../DEPLOYMENT.md) y el contexto en [README.es.md](../README.es.md).
 
-1. Install dependencies
+| Before | After |
+|---|---|
+| ![Before: Alertas with an empty depth](../docs/img/movil/antes/alertas.png) | ![After: Resumen in the cream theme](../docs/img/movil/resumen-crema.png) |
 
-   ```bash
-   npm install
-   ```
+The old client showed «Profundidad: km» with nothing in it (it read `profundidad_km`; the API sends `profundidad`), counted «Total de eventos: 1», pointed at a LAN address written in the code and a WebSocket path (`/api/ws`) the backend does not serve. It did not even start in the browser: `react-native-maps` has no web build.
 
-2. Start the app
+## Screens
 
-   ```bash
-   npx expo start
-   ```
+| | | |
+|---|---|---|
+| ![Summary, cream](../docs/img/movil/resumen-crema.png) | ![Quake detail](../docs/img/movil/detalle-crema.png) | ![Map with a selected quake](../docs/img/movil/mapa-crema.png) |
+| ![Summary, dark](../docs/img/movil/resumen-oscuro.png) | ![Alerts, live](../docs/img/movil/alertas-en-vivo.png) | ![Settings](../docs/img/movil/ajustes-crema.png) |
 
-In the output, you'll find options to open the app in a
+- **Resumen**: four cards (quakes, largest, mean magnitude, magnitude 5 or more), period / magnitude / depth chips, search, and the list of quakes. Pull to refresh.
+- **Mapa**: the quakes coloured by the magnitude scale; tap one for a sheet with its summary and a link to its detail.
+- **Alertas**: quakes at or above a magnitude threshold (6.0 by default) over the last 30 days. If one arrives while the app is open, it shows at the top with a «NUEVO» tag.
+- **Detalle**: facts, estimated deaths, injured and losses, destruction level, and whether the estimate came from rules or from the AI.
+- **Ajustes**: theme (follow the phone, cream, dark), the alert threshold, connection status and the addresses in use.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Run it
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Requirements: Node 22.6 or newer, and the backend running (`docker compose up -d db backend` from the repository root).
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+cd mobile
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**In the browser** (the quickest way to look at it, no phone needed):
 
-## Learn more
+```powershell
+$env:EXPO_PUBLIC_API_URL = "http://localhost:8000/api"
+npx expo start --web --port 8081
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+The backend must allow the origin `http://localhost:8081`; it is in `CORS_ORIGINS` of `.env.example`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+**On a phone** with [Expo Go](https://expo.dev/go): same Wi-Fi as the PC, then
 
-## Join the community
+```powershell
+npx expo start --lan
+```
 
-Join our community of developers creating universal apps.
+and scan the QR code. **On the Android emulator**: `npx expo start --android`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### How the app finds the API
+
+`lib/direccion.ts` decides it with a pure function (tested), in this order:
+
+| Situation | Address |
+|---|---|
+| `EXPO_PUBLIC_API_URL` is set | that one (the WebSocket is derived from it: same host, path `/ws`) |
+| Web | `http://localhost:8000/api` |
+| A phone with Expo Go | the PC that serves the app, port 8000 |
+| Android emulator, no Expo host | `http://10.0.2.2:8000/api` |
+| iOS simulator, no Expo host | `http://localhost:8000/api` |
+
+**Ajustes → Conexión** shows the address the app is using.
+
+## Structure
+
+| Path | What it is |
+|---|---|
+| `app/` | `expo-router` screens: `(tabs)/` (Resumen, Mapa, Alertas, Ajustes) and `evento/[id].tsx` (detail) |
+| `components/` | Badges, chips, KPI cards, rows, loading and error states; `SeismicMap.tsx` (native map) and `SeismicMap.web.tsx` (Leaflet, for the browser) |
+| `constants/paleta.ts` | The cream and dark palette and the magnitude scale, the same values as the web's `globals.css` |
+| `lib/seismic.ts`, `lib/format.ts`, `lib/websocket.ts` | **Copies** of the web's files (same pure logic, same tests). Change one, change the other |
+| `lib/datos.tsx`, `lib/ajustes.tsx` | The data shared by the screens (period, quakes, alerts, WebSocket status) and the saved settings |
+| `lib/direccion.ts`, `lib/config.ts` | Where the backend is |
+| `tests/` | `node:test` tests |
+
+Why copies and not a shared package: Metro does not resolve files outside `mobile/` without extra configuration, and a monorepo for two files would be more machinery than the problem needs.
+
+## Checks
+
+```powershell
+npm test               # 30 tests: the logic shared with the web, the address resolver, the settings
+npx tsc --noEmit       # TypeScript
+npx expo export --platform android   # also ios and web: proves it compiles for each one
+```
+
+With the app running in the browser and the backend up, `npm run movil --prefix ../tools/video` (after `npm install --prefix ../tools/video`) walks every screen in both themes at 390×844, tries the filters and the navigation, and measures the contrast of every visible text. In the last run: 770 texts, 0 below 4.5:1, 0 console errors. The app icons are generated by `tools/capturas/generar_iconos.js`.
+
+## Honest limits
+
+- **It was checked in a browser, not on a phone.** The browser build (`react-native-web`) shows the layout, the data, the navigation and the themes. It cannot show the native map, the touch gestures, the haptics, the feel of pull-to-refresh, the safe areas of a phone with a notch, or performance with 500 quakes. The three builds (Android, iOS, web) do compile; nobody has opened it on a device yet.
+- **The map you see in the browser is not the phone's map.** On the phone `react-native-maps` draws the quakes as pins tinted by magnitude (Google Maps on Android, Apple Maps on iOS); in the browser Leaflet draws circles. The native map has not been displayed. A standalone Android build needs a Google Maps API key; Expo Go brings its own.
+- **No push notifications.** Alerts appear only while the app is open (over the WebSocket); push needs a native build and a token service.
+- **The live notification was checked once, on the web build.** A quake deleted from the local database was re-ingested by the poller and the app showed «Llegó un sismo nuevo» after about two minutes. The same code runs on the phone, but it has not been observed there.
+- **The estimates are not official data** (see the root README), and the AI path was not exercised (no token).
+- **The interface is in Spanish only**, and place names come from the USGS in English.

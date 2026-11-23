@@ -23,5 +23,9 @@ Lista de lo estético, con lo hecho marcado. Lo funcional va primero; esto es lo
 - [ ] Traducir los nombres de lugar del USGS.
 - [ ] Versión en inglés de la interfaz.
 - [ ] Hoja de estilos de impresión para el resumen.
-- [ ] Rediseñar el cliente móvil (Expo) con la misma paleta.
+- [x] Cliente móvil (Expo) rediseñado con la misma paleta: cuatro pestañas, detalle del sismo, mapa, alertas en vivo y ajustes (ver [mobile/README.md](../mobile/README.md)).
 - [ ] Teselas de un proveedor propio en lugar de las de OpenStreetMap.
+- [ ] Probar el cliente móvil en un teléfono real (mapa nativo, gestos, vibración, rendimiento con 500 sismos); hoy solo se vio en el navegador y se compiló para Android e iOS.
+- [ ] Marcadores del mapa nativo como círculos por magnitud (hoy son pines teñidos) y estilo oscuro del mapa en Android.
+- [ ] Notificaciones push de los sismos grandes.
+- [ ] Quitar de `mobile/package.json` las dependencias de la plantilla que ya no se usan (`react-native-reanimated`, `react-native-worklets`, `expo-image`, `expo-web-browser`).

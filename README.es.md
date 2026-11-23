@@ -4,12 +4,13 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.11-009688)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000)
 ![MariaDB](https://img.shields.io/badge/MariaDB-11-003545)
+![Expo](https://img.shields.io/badge/Expo-54-000020)
 
-Un tablero que sigue casi en tiempo real los sismos del mundo de magnitud 4,5 o más. Un backend en **FastAPI** consulta el catálogo del **USGS** cada 3 minutos, guarda cada evento en **MariaDB**, estima su impacto (muertes, heridos, pérdidas y nivel de destrucción) y avisa al navegador por **WebSocket**. La interfaz en **Next.js** lo muestra como mapa, tarjetas de resumen, gráficos y tabla.
+Un tablero que sigue casi en tiempo real los sismos del mundo de magnitud 4,5 o más. Un backend en **FastAPI** consulta el catálogo del **USGS** cada 3 minutos, guarda cada evento en **MariaDB**, estima su impacto (muertes, heridos, pérdidas y nivel de destrucción) y avisa al navegador por **WebSocket**. La interfaz en **Next.js** lo muestra como mapa, tarjetas de resumen, gráficos y tabla, y un cliente móvil en **Expo** muestra los mismos datos.
 
 > English: [README.md](README.md)
 
-El backend y la primera interfaz son obra mía (2025). Esta rama es un rediseño de la interfaz y de la estimación que hay detrás: [qué cambió](#antes-y-después) y [decisiones](docs/decisiones.md).
+El backend y la primera interfaz son obra mía (2025). Esta rama es un rediseño de la interfaz, del cliente móvil y de la estimación que hay detrás: [qué cambió](#antes-y-después) y [decisiones](docs/decisiones.md).
 
 ## Antes y después
 
@@ -31,8 +32,9 @@ La interfaz original tenía degradados azul y morado sobre fondo blanco, estaba 
 | Visualización de datos en SVG propio (sin librería de gráficos) | [`frontend/src/components/Charts.tsx`](frontend/src/components/Charts.tsx) |
 | Lógica de la interfaz como funciones puras con pruebas (filtros, orden, resúmenes, CSV) | [`frontend/src/lib/seismic.ts`](frontend/src/lib/seismic.ts), [`frontend/tests/`](frontend/tests) |
 | Accesibilidad: contraste de texto de al menos 4,5:1 medido por script en los dos temas, uso completo con teclado | [`tools/capturas/verificar_ui.js`](tools/capturas/verificar_ui.js) |
+| Un cliente móvil en Expo (React Native): cuatro pestañas y una pantalla de detalle, los mismos temas, alertas en vivo por WebSocket y la dirección de la API calculada por una función probada en lugar de escrita en el código | [`mobile/`](mobile) |
 | Docker Compose con base de datos con chequeo de salud | [`docker-compose.yml`](docker-compose.yml) |
-| Pruebas: 19 en Python (`pytest`), 20 en TypeScript (`node:test`), chequeo de tipos y compilación de producción | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests) |
+| Pruebas: 19 en Python (`pytest`), 20 en la interfaz web y 30 en el cliente móvil (`node:test`; 20 de ellas vuelven a correr las pruebas de lógica de la web contra la copia del móvil), chequeo de tipos y compilaciones de producción | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
 
 ## Pantallas
 
@@ -42,6 +44,14 @@ La interfaz original tenía degradados azul y morado sobre fondo blanco, estaba 
 |---|---|
 | ![Tema oscuro](docs/img/resumen-oscuro.png) | ![Un sismo elegido: mapa acercado y panel de impacto](docs/img/sismo-crema.png) |
 | ![Celular, crema](docs/img/celular-crema.png) | ![Celular, oscuro](docs/img/celular-oscuro.png) |
+
+### Cliente móvil (Expo)
+
+| | | |
+|---|---|---|
+| ![Resumen](docs/img/movil/resumen-crema.png) | ![Mapa, oscuro](docs/img/movil/mapa-oscuro.png) | ![Detalle de un sismo](docs/img/movil/detalle-crema.png) |
+
+Son la versión de la app en el navegador (`expo start --web`) con datos reales; el mapa nativo y el comportamiento táctil no se han comprobado en un teléfono. [Detalles y límites](mobile/README.md) (en inglés).
 
 El diseño se prototipó primero como una página HTML interactiva con los mismos eventos reales: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (descárgala y ábrela en un navegador). Un recorrido de 2,5 minutos (subtítulos en español, sin voz): [ver en YouTube](https://youtu.be/45RhoPXFj9A) ([English version](https://youtu.be/scIQnkal5zQ)). Las capturas son instantáneas de datos en vivo del 23 de noviembre de 2026.
 
@@ -58,7 +68,7 @@ docker compose up -d db backend frontend
 
 Abre **http://localhost:3000**. La API queda en http://localhost:8000 (documentación interactiva en `/docs`). Los primeros eventos aparecen en menos de un minuto, cuando el backend ya consultó al USGS.
 
-- `docker-compose.yml` también define un servicio `mobile` (Expo) para el cliente del celular; necesita la dirección de tu PC en la red local (ver [DEPLOYMENT.md](DEPLOYMENT.md)) y no forma parte de los comandos de arriba.
+- `docker-compose.yml` también define un servicio `mobile` (Expo) para el cliente del celular (pon `LAN_IP` en `.env`, ver [DEPLOYMENT.md](DEPLOYMENT.md)); no forma parte de los comandos de arriba. La forma más simple de probar el cliente móvil es `npx expo start` dentro de [`mobile/`](mobile/README.md): la app encuentra la API sola.
 - `NEXT_PUBLIC_API_URL` debe ser una dirección que **el navegador** pueda alcanzar (`http://localhost:8000`). `http://backend:8000` solo existe dentro de la red de Docker.
 - Si el puerto 8000 está ocupado, publica el backend en otro y ajusta `NEXT_PUBLIC_API_URL` y `CORS_ORIGINS` en consecuencia.
 
@@ -106,9 +116,15 @@ npm run build           # compilación de producción
 cd ..\backend
 pip install -r requirements-dev.txt
 python -m pytest        # 19 pruebas de la estimación y del resumen de impactos
+cd ..\mobile
+npm install
+npm test                # 30 pruebas del cliente móvil (lógica compartida, resolvedor de direcciones, ajustes)
+npx tsc --noEmit        # TypeScript
 ```
 
 `tools/capturas/verificar_ui.js` corre sobre la app encendida: saca las pantallas en los dos temas y en celular, prueba filtros, orden, búsqueda y selección con teclado, y mide el contraste de todo el texto visible (`npm run ui --prefix tools/video`, después de `npm install --prefix tools/video`). En la última corrida: 0 fallos de unos 290 textos por pantalla, en crema, oscuro y celular.
+
+`tools/capturas/verificar_movil.js` hace lo mismo con el cliente móvil corriendo en el navegador (`npm run movil --prefix tools/video`): cada pantalla en los dos temas a 390×844, filtros y navegación, y el contraste de cada texto; en la última corrida, 0 fallos de 770 textos y sin errores de consola.
 
 GitHub Actions está configurado en [`.github/workflows/ci.yml`](.github/workflows/ci.yml), pero al momento de escribir esto la cuenta de la dueña o dueño del repositorio tiene un problema de facturación que detiene las ejecuciones, así que no hay insignia de CI: las suites de arriba se corrieron en local.
 
@@ -120,7 +136,7 @@ GitHub Actions está configurado en [`.github/workflows/ci.yml`](.github/workflo
 - **Los nombres de lugar vienen del USGS, en inglés** («221 km NE of Bitung, Indonesia»).
 - **Las teselas del mapa son de OpenStreetMap.** Sirven para desarrollo; un despliegue público debería usar un proveedor con sus propios términos.
 - **La lista de conexiones WebSocket vive en la memoria de un solo proceso**, así que no escala a varias réplicas del backend.
-- **El cliente móvil (Expo) no se rediseñó**, y `docker-compose.yml` sigue con una dirección de red local escrita a mano para él.
+- **El cliente móvil se comprobó en un navegador y se compiló para Android e iOS, pero nunca se abrió en un teléfono.** No se han visto su mapa nativo, sus gestos ni su rendimiento; ver [sus límites](mobile/README.md#honest-limits). Las alertas son en vivo solo con la app abierta (sin notificaciones push).
 - La interfaz está solo en español.
 
 ## Mapa del repositorio
@@ -131,11 +147,11 @@ GitHub Actions está configurado en [`.github/workflows/ci.yml`](.github/workflo
 | `backend/tests/` | Pruebas pytest de las funciones puras |
 | `frontend/src/` | Interfaz Next.js: `app/` (página y estilos), `components/`, `lib/` (lógica, formatos, hooks) |
 | `frontend/tests/` | Pruebas `node:test` |
-| `mobile/` | Cliente móvil Expo (no forma parte del rediseño) |
+| `mobile/` | Cliente móvil Expo: `app/` (pantallas), `components/`, `lib/` (datos, resolvedor de direcciones, lógica copiada de la web), `tests/` |
 | `tools/capturas/`, `tools/video/` | Verificación de la interfaz con auditoría de contraste, y el kit de video |
 | `docs/` | Decisiones, lista estética, guion y guía del video, prototipo de diseño, capturas |
 
-Más: [decisiones](docs/decisiones.md) · [lista estética](docs/pendientes_esteticos.md) · [guion del video](docs/video_guion.md) · [guía del video](docs/guia_video.md) · [despliegue](DEPLOYMENT.md).
+Más: [decisiones](docs/decisiones.md) · [lista estética](docs/pendientes_esteticos.md) · [guion del video](docs/video_guion.md) · [guía del video](docs/guia_video.md) · [cliente móvil](mobile/README.md) · [despliegue](DEPLOYMENT.md).
 
 ## Créditos
 

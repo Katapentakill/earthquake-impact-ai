@@ -71,13 +71,11 @@ services:
     container_name: seismic_mobile
     restart: unless-stopped
     environment:
-      # CRITICAL: Use PC IP (192.168.1.126) NOT Docker service name "backend"
-      # The phone runs Expo Go which cannot resolve Docker service names
-      EXPO_PUBLIC_API_URL: "http://192.168.1.126:8000/api"
-      EXPO_PUBLIC_WEBSOCKET_URL: "ws://192.168.1.126:8000/api/ws"
-      # Metro bundler configuration for WiFi LAN
-      REACT_NATIVE_PACKAGER_HOSTNAME: "192.168.1.126"
-      EXPO_PACKAGER_HOSTNAME: "192.168.1.126"
+      # The app derives the API address from the Expo host (mobile/lib/direccion.ts); EXPO_PUBLIC_API_URL only overrides it.
+      # LAN_IP is your PC's address on the local network: Expo advertises it in the QR code (the container cannot know it).
+      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-}
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${LAN_IP:-}
+      EXPO_PACKAGER_HOSTNAME: ${LAN_IP:-}
     ports:
       - "8081:8081"
     depends_on:
