@@ -1,42 +1,34 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Icono, type NombreIcono } from '@/components/Icono';
+import { useTema } from '@/lib/ajustes';
+
+const PESTANAS: { name: string; title: string; icono: NombreIcono }[] = [
+  { name: 'index', title: 'Resumen', icono: 'bar-chart' },
+  { name: 'mapa', title: 'Mapa', icono: 'public' },
+  { name: 'alertas', title: 'Alertas', icono: 'notifications' },
+  { name: 'ajustes', title: 'Ajustes', icono: 'tune' },
+];
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+  const p = useTema();
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: p.accent,
+        tabBarInactiveTintColor: p.muted,
+        tabBarStyle: { backgroundColor: p.surface, borderTopColor: p.border, height: 66 + insets.bottom },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        sceneStyle: { backgroundColor: p.bg },
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Mapa',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="alertas"
-        options={{
-          title: 'Alertas',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="sistema"
-        options={{
-          title: 'Sistema',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
-        }}
-      />
+      {PESTANAS.map((t) => (
+        <Tabs.Screen key={t.name} name={t.name} options={{ title: t.title, tabBarIcon: ({ color }) => <Icono nombre={t.icono} color={color} tam={24} /> }} />
+      ))}
     </Tabs>
   );
 }

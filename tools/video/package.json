@@ -7,7 +7,8 @@
     "componer": "node componer.mjs",
     "video": "npm run grabar && npm run componer",
     "revisar": "node revisar.mjs es && node revisar.mjs en",
-    "ui": "electron ../capturas/verificar_ui.js"
+    "ui": "electron ../capturas/verificar_ui.js",
+    "movil": "electron ../capturas/verificar_movil.js"
   },
   "dependencies": {
     "electron": "^36.4.0",

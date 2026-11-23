@@ -1,210 +1,79 @@
-import { useEffect, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  FlatList,
-  Text,
-  RefreshControl,
-  ActivityIndicator,
-} from 'react-native';
-import { eventsApi } from '@/lib/api';
-import { SeismicEvent } from '@/lib/types';
+import { useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 
-const EventCard = ({ event }: { event: SeismicEvent }) => {
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateString;
-    }
-  };
+import { Cabecera } from '@/components/Cabecera';
+import { BannerError, Esqueleto, Vacio } from '@/components/Estados';
+import { FilaSismo } from '@/components/FilaSismo';
+import type { Paleta } from '@/constants/paleta';
+import { RADIO } from '@/constants/paleta';
+import { useAjustes, useEstilos, useTema } from '@/lib/ajustes';
+import { useDatos } from '@/lib/datos';
+import { fmtMagnitud } from '@/lib/format';
+import { ordenarEventos } from '@/lib/seismic';
+import type { SeismicEvent } from '@/lib/types';
 
-  const getMagnitudeColor = (magnitude: number): string => {
-    if (magnitude < 4.5) return '#3498db';
-    if (magnitude < 5.5) return '#f1c40f';
-    if (magnitude < 6.5) return '#e67e22';
-    return '#e74c3c';
-  };
+const fabrica = (p: Paleta) => ({
+  lista: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
+  bloque: { gap: 12, marginBottom: 6 },
+  resumen: { backgroundColor: p.surface, borderColor: p.border, borderWidth: 1, borderRadius: RADIO.lg, padding: 14, gap: 4, ...p.sombra },
+  resumenTitulo: { color: p.text, fontSize: 16, fontWeight: '800' as const },
+  resumenTexto: { color: p.text2, fontSize: 13.5, lineHeight: 19 },
+  vivo: { backgroundColor: p.accentSoft, borderRadius: RADIO.md, padding: 12 },
+  vivoTexto: { color: p.text, fontSize: 14, fontWeight: '600' as const },
+});
 
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View
-          style={[styles.magnitudeBadge, { backgroundColor: getMagnitudeColor(event.magnitud) }]}
-        >
-          <Text style={styles.magnitudeText}>{event.magnitud}</Text>
-        </View>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.lugar} numberOfLines={1}>
-            {event.lugar}
+export default function Alertas() {
+  const s = useEstilos(fabrica);
+  const p = useTema();
+  const router = useRouter();
+  const { umbral } = useAjustes();
+  const { alertas, estado, error, recargar, ahora, nuevos } = useDatos();
+  const [refrescando, setRefrescando] = useState(false);
+
+  const filas = useMemo(() => ordenarEventos(alertas, 'fecha', -1), [alertas]);
+  const recientes = filas.filter((e) => nuevos.includes(e.event_id));
+
+  const refrescar = useCallback(async () => {
+    setRefrescando(true);
+    await recargar();
+    setRefrescando(false);
+  }, [recargar]);
+  const abrir = useCallback((id: string) => router.push({ pathname: '/evento/[id]', params: { id } }), [router]);
+  const renderFila = useCallback(({ item }: { item: SeismicEvent }) => <FilaSismo evento={item} ahora={ahora} nuevo={nuevos.includes(item.event_id)} onPress={abrir} />, [ahora, nuevos, abrir]);
+
+  const cabecera = (
+    <View style={s.bloque}>
+      {error ? <BannerError mensaje={error} onReintentar={recargar} /> : null}
+      {recientes.length > 0 ? (
+        <View style={s.vivo} accessibilityRole="alert">
+          <Text style={s.vivoTexto}>
+            {recientes.length === 1 ? `Llegó un sismo nuevo: M ${fmtMagnitud(recientes[0].magnitud)}, ${recientes[0].lugar}` : `Llegaron ${recientes.length} sismos nuevos desde que abriste la app`}
           </Text>
-          <Text style={styles.fecha}>{formatDate(event.fecha_utc)}</Text>
         </View>
+      ) : null}
+      <View style={s.resumen}>
+        <Text style={s.resumenTitulo} accessibilityRole="header">Magnitud {fmtMagnitud(umbral)} o más</Text>
+        <Text style={s.resumenTexto}>
+          {estado === 'cargando' ? 'Cargando…' : `${filas.length} ${filas.length === 1 ? 'sismo' : 'sismos'} en los últimos 30 días. Si llega uno nuevo mientras la app está abierta, aparece arriba con la etiqueta NUEVO. El umbral se cambia en Ajustes.`}
+        </Text>
       </View>
-      <View style={styles.cardDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Profundidad:</Text>
-          <Text style={styles.value}>{event.profundidad_km} km</Text>
-        </View>
-        {event.radio_afectacion_km && (
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Radio de afectación:</Text>
-            <Text style={styles.value}>{event.radio_afectacion_km} km</Text>
-          </View>
-        )}
-        <View style={styles.detailRow}>
-          <Text style={styles.label}>Fuente:</Text>
-          <Text style={styles.value}>{event.fuente_api}</Text>
-        </View>
-      </View>
+      {estado === 'cargando' ? [0, 1, 2].map((i) => <Esqueleto key={i} alto={74} />) : null}
     </View>
   );
-};
-
-export default function AlertasScreen() {
-  const [events, setEvents] = useState<SeismicEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const response = await eventsApi.getEvents({ limit: 50 });
-      // Sort by date, most recent first
-      const sorted = response.events.sort(
-        (a, b) => new Date(b.fecha_utc).getTime() - new Date(a.fecha_utc).getTime()
-      );
-      setEvents(sorted);
-    } catch (err) {
-      console.error('Error fetching events:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchEvents();
-    setRefreshing(false);
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3498db" />
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={{ flex: 1 }}>
+      <Cabecera titulo="Alertas" />
       <FlatList
-        data={events}
-        keyExtractor={(item) => item.event_id}
-        renderItem={({ item }) => <EventCard event={item} />}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.centerContainer}>
-            <Text style={styles.emptyText}>No hay eventos sísmicos</Text>
-          </View>
-        }
+        data={estado === 'cargando' ? [] : filas}
+        keyExtractor={(e) => e.event_id}
+        renderItem={renderFila}
+        ListHeaderComponent={cabecera}
+        ListEmptyComponent={estado === 'cargando' ? null : <Vacio titulo="Sin alertas" texto={`No hubo sismos de magnitud ${fmtMagnitud(umbral)} o más en los últimos 30 días.`} />}
+        contentContainerStyle={s.lista}
+        refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} tintColor={p.accent} colors={[p.accent]} />}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    padding: 8,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginVertical: 8,
-    marginHorizontal: 4,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  magnitudeBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  magnitudeText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  cardHeaderText: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  lugar: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  fecha: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  cardDetails: {
-    padding: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 4,
-  },
-  label: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  value: {
-    fontSize: 12,
-    color: '#333',
-    fontWeight: '600',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-  },
-});

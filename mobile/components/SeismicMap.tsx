@@ -1,58 +1,45 @@
-import MapView, { Marker } from 'react-native-maps';
-import { View, StyleSheet } from 'react-native';
-import { SeismicEvent } from '@/lib/types';
+// Mapa nativo (Android e iOS) con react-native-maps. En la web se usa SeismicMap.web.tsx, porque esa librería no existe allí.
+import { useEffect, useMemo, useRef } from 'react';
+import { StyleSheet } from 'react-native';
+import MapView, { Marker, type Region } from 'react-native-maps';
+import { ESCALA_MAGNITUD } from '@/constants/paleta';
+import { useTema } from '@/lib/ajustes';
+import { nivelMagnitud } from '@/lib/seismic';
+import type { SeismicEvent } from '@/lib/types';
 
-interface SeismicMapProps {
-  events: SeismicEvent[];
-  onMarkerPress?: (event: SeismicEvent) => void;
+export interface PropsMapa {
+  eventos: SeismicEvent[];
+  elegido: string | null;
+  onElegir: (id: string) => void;
 }
 
-const getMagnitudeColor = (magnitude: number): string => {
-  if (magnitude < 4.5) return '#3498db'; // Blue - Minor
-  if (magnitude < 5.5) return '#f1c40f'; // Yellow - Moderate
-  if (magnitude < 6.5) return '#e67e22'; // Orange - High
-  return '#e74c3c'; // Red - Severe/Catastrophic
-};
+const MUNDO: Region = { latitude: 10, longitude: 0, latitudeDelta: 110, longitudeDelta: 110 };
 
-export const SeismicMap: React.FC<SeismicMapProps> = ({ events, onMarkerPress }) => {
+export function SeismicMap({ eventos, elegido, onElegir }: PropsMapa) {
+  const p = useTema();
+  const mapa = useRef<MapView>(null);
+  // Los más grandes se dibujan al final para que queden encima de los pequeños.
+  const ordenados = useMemo(() => [...eventos].sort((a, b) => a.magnitud - b.magnitud), [eventos]);
+
+  useEffect(() => {
+    const e = eventos.find((x) => x.event_id === elegido);
+    if (e) mapa.current?.animateToRegion({ latitude: e.latitud, longitude: e.longitud, latitudeDelta: 14, longitudeDelta: 14 }, 600);
+    // Solo debe moverse cuando cambia el sismo elegido, no cada vez que llegan datos nuevos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elegido]);
+
   return (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: 20,
-          longitude: -100,
-          latitudeDelta: 8,
-          longitudeDelta: 8,
-        }}
-      >
-        {events.map((event) => {
-          const color = getMagnitudeColor(event.magnitud);
-
-          return (
-            <Marker
-              key={event.event_id}
-              coordinate={{
-                latitude: event.latitud,
-                longitude: event.longitud,
-              }}
-              title={event.lugar}
-              description={`Magnitud: ${event.magnitud} | Profundidad: ${event.profundidad_km}km`}
-              onPress={() => onMarkerPress?.(event)}
-              pinColor={color}
-            />
-          );
-        })}
-      </MapView>
-    </View>
+    <MapView ref={mapa} style={StyleSheet.absoluteFill} initialRegion={MUNDO} userInterfaceStyle={p.nombre === 'oscuro' ? 'dark' : 'light'} toolbarEnabled={false} rotateEnabled={false}>
+      {ordenados.map((e) => (
+        <Marker
+          key={e.event_id}
+          coordinate={{ latitude: e.latitud, longitude: e.longitud }}
+          pinColor={ESCALA_MAGNITUD[nivelMagnitud(e.magnitud)].fondo}
+          tracksViewChanges={false}
+          zIndex={e.event_id === elegido ? 10000 : Math.round(e.magnitud * 10)}
+          onPress={() => onElegir(e.event_id)}
+        />
+      ))}
+    </MapView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-});
+}
