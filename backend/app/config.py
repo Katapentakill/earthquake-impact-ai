@@ -4,8 +4,10 @@ from typing import List
 
 class Settings(BaseSettings):
     # Hugging Face
-    huggingface_api_token: str
-    huggingface_model: str = "mistralai/Mistral-7B-Instruct-v0.2"
+    # Sin token la app funciona con la estimación por reglas. El modelo debe estar servido por un proveedor de Inference Providers
+    # (lista: https://router.huggingface.co/v1/models); Qwen2.5-7B-Instruct, el modelo original, ya no lo sirve ninguno.
+    huggingface_api_token: str = ""
+    huggingface_model: str = "meta-llama/Llama-3.3-70B-Instruct"
 
     # Database
     mariadb_host: str = "localhost"

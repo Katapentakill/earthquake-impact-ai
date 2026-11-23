@@ -39,7 +39,7 @@ cp .env.example .env
 1. Ir a [huggingface.co](https://huggingface.co/)
 2. Crear cuenta (si no tienes)
 3. Ir a [Settings → Tokens](https://huggingface.co/settings/tokens)
-4. Crear un nuevo token de **lectura**
+4. Crear un nuevo token con el preset **Inference** («Make calls to Inference Providers»)
 5. Copiar el token y pegarlo en `.env`:
 
 ```env
@@ -279,13 +279,19 @@ docker compose down
 docker compose up -d
 ```
 
+### ❌ Error: "The requested model ... is not supported by any provider"
+
+**Causa:** el token es válido, pero ningún proveedor de Inference Providers sirve ese modelo (le pasó a `Qwen/Qwen2.5-7B-Instruct`). El backend lo registra y usa la estimación por reglas.
+
+**Solución:** pon en `.env` un modelo de la lista https://router.huggingface.co/v1/models (por defecto, `meta-llama/Llama-3.3-70B-Instruct`) y `docker compose restart backend`. Comprueba en el log: «Respuesta de Hugging Face. Modelo: …» y «1 de 1 impactos de la IA pasaron la validación».
+
 ### ❌ Error: "Hugging Face token invalid"
 
 **Causa:** Token no válido o sin permiso de lectura.
 
 **Solución:**
 1. Ve a [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-2. Verifica que tengas un token de **lectura**
+2. Verifica que sea un token con el preset **Inference** («Make calls to Inference Providers»)
 3. Cópialo exactamente (sin espacios): `hf_ZXeipzyUG...`
 4. Pégalo en `.env`: `HUGGINGFACE_API_TOKEN=hf_ZXeipzyUG...`
 5. Reinicia backend: `docker compose restart backend`

@@ -34,7 +34,7 @@ The original interface had blue and purple gradients on a white background, was 
 | Accessibility: text contrast of at least 4.5:1 measured by script in both themes, full keyboard use | [`tools/capturas/verificar_ui.js`](tools/capturas/verificar_ui.js) |
 | A phone client in Expo (React Native): four tabs and a detail screen, the same themes, live alerts over the WebSocket, and the API address worked out by a tested function instead of written in the code | [`mobile/`](mobile) |
 | Docker Compose with a health-checked database | [`docker-compose.yml`](docker-compose.yml) |
-| Tests: 19 in Python (`pytest`), 20 in the web interface and 30 in the phone client (`node:test`; 20 of those re-run the web's logic tests against the phone's copy), type checks and production builds | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
+| Tests: 36 in Python (`pytest`), 20 in the web interface and 30 in the phone client (`node:test`; 20 of those re-run the web's logic tests against the phone's copy), type checks and production builds | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
 
 ## Screens
 
@@ -74,7 +74,11 @@ Open **http://localhost:3000**. The API is on http://localhost:8000 (interactive
 
 ### The AI model (optional)
 
-Without a Hugging Face token the app works and every estimate comes from the rule-based fallback; the panel says so ("Cálculo por reglas · sin IA"). To use the model, create a **read** token at huggingface.co/settings/tokens and put it in `.env` as `HUGGINGFACE_API_TOKEN` (the default model is `Qwen/Qwen2.5-7B-Instruct`). The AI path was not exercised in this redesign: it needs a token I did not have.
+Without a Hugging Face token the app works and every estimate comes from the rule-based fallback; the panel says so ("Cálculo por reglas · sin IA"). To use the model, create a token with the **Inference** preset ("Make calls to Inference Providers") at huggingface.co/settings/tokens and put it in `.env` as `HUGGINGFACE_API_TOKEN`.
+
+The default model is `meta-llama/Llama-3.3-70B-Instruct`. The original `Qwen/Qwen2.5-7B-Instruct` is no longer served by any Inference Provider (checked on 23 November 2026), so a model must be one listed at https://router.huggingface.co/v1/models. I compared Qwen2.5-72B and Llama-3.3-70B on three quakes: both returned valid JSON every time; Llama took 5 to 14 seconds per answer (Qwen, 11 to 13), is served by many more providers and, asked to, wrote its reasoning in Spanish. The panel then reads "Análisis con IA":
+
+![The panel with the AI analysis](docs/img/panel-ia-crema.png)
 
 ## How it works
 
@@ -115,7 +119,7 @@ npm run typecheck       # TypeScript
 npm run build           # production build
 cd ..\backend
 pip install -r requirements-dev.txt
-python -m pytest        # 19 tests of the estimate and the impact summary
+python -m pytest        # 36 tests: the estimate, the impact summary and the reading of the AI answer
 cd ..\mobile
 npm install
 npm test                # 30 tests of the phone client (shared logic, address resolver, settings)
@@ -132,7 +136,7 @@ GitHub Actions is configured in [`.github/workflows/ci.yml`](.github/workflows/c
 
 - **The estimates are not official data.** Rules or a language model produce them from magnitude, depth and location; they have not been validated against real casualty reports. Without a model the country is unknown.
 - **The rules are deliberately simple.** The depth classes and their factors (1, 0.4, 0.02) are my own choice, not seismology.
-- **The AI path was not tested here** (no token). The prompt and its answers are in English, so with a token the reasoning text would be English inside a Spanish interface.
+- **The AI and the rules disagree, and neither is validated.** For the magnitude 6.5 quake at 598 km the AI estimated 15 deaths (a 70B model, one run, 23 November 2026) and the rules 3. Neither has been compared with real casualty reports, and a language model can cite events it has not verified (it wrote «similar al terremoto de 2010 en Vanuatu» without a source). The AI path was exercised on three quakes with two models, and once end to end through the poller and the interface; it has not run for long, and the free Inference Providers credits are limited.
 - **Place names come from the USGS, in English** ("221 km NE of Bitung, Indonesia").
 - **Map tiles are OpenStreetMap's.** They are fine for development; a public deployment should use a tile provider with its own terms.
 - **The WebSocket connection list lives in one process's memory**, so it does not scale to several backend replicas.

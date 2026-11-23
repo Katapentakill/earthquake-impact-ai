@@ -93,5 +93,5 @@ With the app running in the browser and the backend up, `npm run movil --prefix 
 - **The map you see in the browser is not the phone's map.** On the phone `react-native-maps` draws the quakes as pins tinted by magnitude (Google Maps on Android, Apple Maps on iOS); in the browser Leaflet draws circles. The native map has not been displayed. A standalone Android build needs a Google Maps API key; Expo Go brings its own.
 - **No push notifications.** Alerts appear only while the app is open (over the WebSocket); push needs a native build and a token service.
 - **The live notification was checked once, on the web build.** A quake deleted from the local database was re-ingested by the poller and the app showed «Llegó un sismo nuevo» after about two minutes. The same code runs on the phone, but it has not been observed there.
-- **The estimates are not official data** (see the root README), and the AI path was not exercised (no token).
+- **The estimates are not official data** (see the root README, which also compares the AI estimate with the rules). The detail screen shows «Análisis con IA» or «Cálculo por reglas · sin IA» depending on where the estimate came from.
 - **The interface is in Spanish only**, and place names come from the USGS in English.

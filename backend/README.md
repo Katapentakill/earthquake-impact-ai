@@ -191,39 +191,25 @@ class RadiusCalculator:
 
 ### 3. Hugging Face Client (`huggingface_client.py`)
 
-**Responsabilidad**: Análisis de impacto usando IA
+**Responsabilidad**: Análisis de impacto usando IA, con la estimación por reglas como respaldo.
 
 ```python
 class HuggingFaceInferenceClient:
-    async def infer_impact(
-        self,
-        latitud: float,
-        longitud: float,
-        magnitud: float,
-        profundidad: float,
-        radio_km: float,
-        lugar: str
-    ) -> List[Dict]:
+    async def infer_impact(self, latitud, longitud, magnitud, profundidad, radio_km, lugar="", historical_context=None) -> List[Dict]:
         """
-        Solicita análisis de impacto a modelo de IA
+        Devuelve la lista de impactos por país; nunca lanza una excepción:
+        sin token real, con un error de la API o con una respuesta que no sirve, devuelve la estimación por reglas
+        (app/services/respaldo.py: un solo impacto, con país «Región sin identificar»).
 
-        Returns:
-            Lista de impactos por país con:
-            - pais: str
-            - ciudades_afectadas: List[str]
-            - muertes_estimadas: int
-            - heridos_estimados: int
-            - perdidas_monetarias_usd: int
-            - nivel_destruccion: BAJO|MODERADO|ALTO|CATASTROFICO
-            - razonamiento_ia: str (⭐ NUEVO)
-            - factores_considerados: List[str] (⭐ NUEVO)
-            - codigo_construccion: str (⭐ NUEVO)
+        Cada impacto trae: pais, ciudades_afectadas, muertes_estimadas, heridos_estimados, perdidas_monetarias_usd,
+        nivel_destruccion (BAJO|MODERADO|ALTO|CATASTROFICO), razonamiento, factores_considerados, codigo_construccion,
+        fuentes_inferidas, nivel_preparacion_sismica y densidad_poblacional.
         """
 ```
 
-**Modelo Utilizado**:
-- `Qwen/Qwen2.5-7B-Instruct` (default)
-- Alternativas: `mistralai/Mistral-7B-Instruct-v0.2`, `meta-llama/Llama-3.2-3B-Instruct`
+La lectura de la respuesta del modelo está aparte, en `app/services/respuesta_ia.py` (funciones puras con pruebas): saca la lista JSON aunque venga entre ```json, repara una coma sobrante, convierte cifras escritas como texto, normaliza el nivel de destrucción y, si la IA devuelve todo en cero para un sismo que no lo justifica, corrige las cifras con magnitud, profundidad, preparación y densidad. Si el modelo está cargándose (503) se reintenta hasta 3 veces.
+
+**Modelo utilizado**: `meta-llama/Llama-3.3-70B-Instruct` (por defecto, en `app/config.py`). El modelo debe estar servido por un proveedor de Inference Providers: la lista está en https://router.huggingface.co/v1/models. `Qwen/Qwen2.5-7B-Instruct`, el anterior, ya no lo sirve ninguno. Probados el 23-nov-2026: `Qwen/Qwen2.5-72B-Instruct` (JSON válido, 11 a 13 s, razonamiento en inglés) y `meta-llama/Llama-3.3-70B-Instruct` (JSON válido, 5 a 14 s, razonamiento en español); `meta-llama/Llama-3.1-8B-Instruct` devolvió JSON roto.
 
 **Prompt Engineering**:
 El prompt incluye:
@@ -236,26 +222,29 @@ El prompt incluye:
    - Referencias históricas cuando sea posible
    - Información de códigos de construcción por país
 
-**Ejemplo de Respuesta IA**:
+**Ejemplo de respuesta de la IA** (la guardada para el sismo M 6,5 de «Vanuatu region» a 598 km, el 23-nov-2026):
 ```json
 {
-  "pais": "Taiwan",
-  "ciudades_afectadas": ["Hualien City"],
-  "muertes_estimadas": 100,
-  "heridos_estimados": 500,
-  "perdidas_monetarias_usd": 150000000,
+  "pais": "Vanuatu",
+  "ciudades_afectadas": ["Port Vila"],
+  "muertes_estimadas": 15,
+  "heridos_estimados": 120,
+  "perdidas_monetarias_usd": 15000000,
   "nivel_destruccion": "MODERADO",
-  "razonamiento_ia": "Magnitude 5.0 at 39.8km depth. Applied -30% for deep earthquake. Taiwan has strict building codes (2001 law). Low population density in rural areas (Hualien) but urban areas nearby. Historical data shows similar quakes (2016, 5.8 mag, 2 injuries) with minimal impact due to good infrastructure. Adjusted estimates: base 150 deaths * 0.7 (depth) * 0.8 (prep) * 1.0 (density) = 84 deaths, rounded to 100 considering uncertainties.",
+  "razonamiento": "Magnitud 6.5 a 598.0 km de profundidad. Considerando la profundidad del terremoto, se aplicaría una reducción del 40% en el número de víctimas, ya que la energía se disipa con la distancia. Sin embargo, la falta de preparación sísmica y la baja calidad de las construcciones en Vanuatu aumentan el riesgo de daños. [...]",
   "factores_considerados": [
-    "Magnitude 5.0 - light",
-    "Depth 39.8km - reduced surface impact",
-    "Urban area nearby - Hualien",
-    "Strict building codes - 2001 law",
-    "Historical pattern - 2016 reference"
+    "Magnitud 6.5 - Terremoto de moderada intensidad",
+    "Profundidad 598.0 km - Reducción del 40% en el número de víctimas",
+    "Preparación sísmica baja - Aumento del riesgo de daños",
+    "Densidad poblacional media - Número de víctimas moderado"
   ],
-  "codigo_construccion": "Alta (Taiwan Earthquake and Tsunami Mitigation Law 2001)"
+  "codigo_construccion": "La construcción en Vanuatu es en general de baja calidad, con algunas estructuras resistentes a terremotos, pero la mayoría no cumple con los estándares internacionales",
+  "nivel_preparacion_sismica": "Baja",
+  "densidad_poblacional": "Media"
 }
 ```
+
+(La clave que pide el prompt es `razonamiento`; la base de datos la guarda como `razonamiento_ia`.)
 
 ---
 
@@ -584,50 +573,31 @@ ws.onmessage = (event) => {
 
 ### Variables de Entorno (`.env`)
 
+La plantilla completa y comentada es [`.env.example`](../.env.example). Lo que lee el backend (`app/config.py`):
+
 ```env
-# Hugging Face
-HUGGINGFACE_API_TOKEN=hf_your_token_here
-HUGGINGFACE_MODEL=Qwen/Qwen2.5-7B-Instruct
+# Hugging Face (opcional: sin token se usa la estimación por reglas)
+HUGGINGFACE_API_TOKEN=
+HUGGINGFACE_MODEL=meta-llama/Llama-3.3-70B-Instruct
 
 # Base de datos
-MYSQL_HOST=db
-MYSQL_PORT=3306
-MYSQL_DATABASE=seismic_db
-MYSQL_USER=seismic_user
-MYSQL_PASSWORD=seismic_password_2025
+MARIADB_HOST=db
+MARIADB_PORT=3306
+MARIADB_DATABASE=seismic_db
+MARIADB_USER=seismic_user
+MARIADB_PASSWORD=<tu contraseña>
 
-# Configuración de polling
-POLLING_INTERVAL_SECONDS=180  # 3 minutos
+# Consulta al USGS
+POLLING_INTERVAL_SECONDS=180   # 3 minutos
 MIN_MAGNITUDE_THRESHOLD=4.5
+
+# Orígenes que pueden llamar a la API desde un navegador (la web y Expo web)
+CORS_ORIGINS=http://localhost:3000,http://localhost:8081
 ```
 
 ### Archivo `config.py`
 
-```python
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-    # API
-    api_title: str = "Seismic Monitoring API"
-    api_version: str = "1.0.0"
-
-    # Database
-    database_url: str
-
-    # Hugging Face
-    huggingface_api_token: str
-    huggingface_model: str = "Qwen/Qwen2.5-7B-Instruct"
-
-    # USGS
-    usgs_api_url: str = "https://earthquake.usgs.gov/fdsnws/event/1/query"
-    min_magnitude_threshold: float = 4.5
-    polling_interval_seconds: int = 180
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
-```
+Es una clase de `pydantic-settings` (`app/config.py`) con un campo por variable de arriba; cada una se puede cambiar con una variable de entorno del mismo nombre. El modelo por defecto y su comentario están ahí.
 
 ---
 
@@ -665,12 +635,22 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ### Variables de entorno para desarrollo local
 
 ```env
-DATABASE_URL=mysql+aiomysql://seismic_user:seismic_password_2025@localhost:3306/seismic_db
+MARIADB_HOST=localhost
+MARIADB_PASSWORD=<la de tu .env>
 ```
 
 ---
 
 ## 🧪 Testing
+
+### Pruebas automáticas
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest        # 36 pruebas de funciones puras: no necesitan Docker ni base de datos
+```
+
+Cubren la estimación por reglas (`respaldo.py`), el resumen de impactos (`resumen.py`) y la lectura de la respuesta de la IA (`respuesta_ia.py`).
 
 ### Pruebas Manuales con curl
 

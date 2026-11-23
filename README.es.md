@@ -34,7 +34,7 @@ La interfaz original tenía degradados azul y morado sobre fondo blanco, estaba 
 | Accesibilidad: contraste de texto de al menos 4,5:1 medido por script en los dos temas, uso completo con teclado | [`tools/capturas/verificar_ui.js`](tools/capturas/verificar_ui.js) |
 | Un cliente móvil en Expo (React Native): cuatro pestañas y una pantalla de detalle, los mismos temas, alertas en vivo por WebSocket y la dirección de la API calculada por una función probada en lugar de escrita en el código | [`mobile/`](mobile) |
 | Docker Compose con base de datos con chequeo de salud | [`docker-compose.yml`](docker-compose.yml) |
-| Pruebas: 19 en Python (`pytest`), 20 en la interfaz web y 30 en el cliente móvil (`node:test`; 20 de ellas vuelven a correr las pruebas de lógica de la web contra la copia del móvil), chequeo de tipos y compilaciones de producción | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
+| Pruebas: 36 en Python (`pytest`), 20 en la interfaz web y 30 en el cliente móvil (`node:test`; 20 de ellas vuelven a correr las pruebas de lógica de la web contra la copia del móvil), chequeo de tipos y compilaciones de producción | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
 
 ## Pantallas
 
@@ -74,7 +74,11 @@ Abre **http://localhost:3000**. La API queda en http://localhost:8000 (documenta
 
 ### El modelo de IA (opcional)
 
-Sin token de Hugging Face la app funciona y toda estimación sale de las reglas de respaldo; el panel lo dice («Cálculo por reglas · sin IA»). Para usar el modelo, crea un token de **lectura** en huggingface.co/settings/tokens y ponlo en `.env` como `HUGGINGFACE_API_TOKEN` (el modelo por defecto es `Qwen/Qwen2.5-7B-Instruct`). El camino con IA no se ejecutó en este rediseño: necesita un token que no tuve.
+Sin token de Hugging Face la app funciona y toda estimación sale de las reglas de respaldo; el panel lo dice («Cálculo por reglas · sin IA»). Para usar el modelo, crea un token con el preset **Inference** («Make calls to Inference Providers») en huggingface.co/settings/tokens y ponlo en `.env` como `HUGGINGFACE_API_TOKEN`.
+
+El modelo por defecto es `meta-llama/Llama-3.3-70B-Instruct`. El original, `Qwen/Qwen2.5-7B-Instruct`, ya no lo sirve ningún proveedor de Inference Providers (comprobado el 23 de noviembre de 2026), así que el modelo debe estar en https://router.huggingface.co/v1/models. Comparé Qwen2.5-72B y Llama-3.3-70B con tres sismos: los dos devolvieron JSON válido todas las veces; Llama tardó de 5 a 14 segundos por respuesta (Qwen, de 11 a 13), lo sirven muchos más proveedores y, al pedírselo, escribió el razonamiento en español. El panel dice entonces «Análisis con IA»:
+
+![El panel con el análisis de la IA](docs/img/panel-ia-crema.png)
 
 ## Cómo funciona
 
@@ -115,7 +119,7 @@ npm run typecheck       # TypeScript
 npm run build           # compilación de producción
 cd ..\backend
 pip install -r requirements-dev.txt
-python -m pytest        # 19 pruebas de la estimación y del resumen de impactos
+python -m pytest        # 36 pruebas: la estimación, el resumen de impactos y la lectura de la respuesta de la IA
 cd ..\mobile
 npm install
 npm test                # 30 pruebas del cliente móvil (lógica compartida, resolvedor de direcciones, ajustes)
@@ -132,7 +136,7 @@ GitHub Actions está configurado en [`.github/workflows/ci.yml`](.github/workflo
 
 - **Las estimaciones no son datos oficiales.** Las producen reglas o un modelo de lenguaje a partir de magnitud, profundidad y ubicación; no se validaron contra reportes reales de víctimas. Sin modelo no se conoce el país.
 - **Las reglas son deliberadamente simples.** Las clases de profundidad y sus factores (1, 0,4, 0,02) son decisión mía, no sismología.
-- **El camino con IA no se probó aquí** (sin token). El prompt y sus respuestas están en inglés, así que con token el razonamiento saldría en inglés dentro de una interfaz en español.
+- **La IA y las reglas no coinciden, y ninguna está validada.** Para el sismo de magnitud 6,5 a 598 km la IA estimó 15 muertes (un modelo de 70B, una corrida, 23 de noviembre de 2026) y las reglas 3. Ninguna se comparó con reportes reales de víctimas, y un modelo de lenguaje puede citar hechos que no verificó (escribió «similar al terremoto de 2010 en Vanuatu» sin fuente). El camino con IA se ejecutó con tres sismos y dos modelos, y una vez de punta a punta por la consulta periódica y la interfaz; no ha corrido por mucho tiempo, y los créditos gratuitos de Inference Providers son limitados.
 - **Los nombres de lugar vienen del USGS, en inglés** («221 km NE of Bitung, Indonesia»).
 - **Las teselas del mapa son de OpenStreetMap.** Sirven para desarrollo; un despliegue público debería usar un proveedor con sus propios términos.
 - **La lista de conexiones WebSocket vive en la memoria de un solo proceso**, así que no escala a varias réplicas del backend.

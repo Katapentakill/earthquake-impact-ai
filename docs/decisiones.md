@@ -47,3 +47,12 @@ Registro de lo que se decidió al rediseñar el proyecto (noviembre de 2026) y p
 32. **Íconos propios.** El ícono, el adaptable de Android, la pantalla de inicio y el favicon eran los de la plantilla de Expo. Ahora son ondas sísmicas en el acento de la app, generadas por `tools/capturas/generar_iconos.js`.
 33. **Se borraron los restos de la plantilla** (`hello-wave`, `parallax-scroll-view`, `collapsible`, `reset-project`, el logo de React y los colores del tema por defecto) y los íconos pasaron a un solo juego (Material) para que la app se vea igual en web, Android e iOS.
 34. **El origen `http://localhost:8081` entra en `CORS_ORIGINS` de `.env.example`**: sin él, el navegador bloquea las llamadas de Expo web al backend.
+
+## La IA
+
+35. **El modelo por defecto pasó a `meta-llama/Llama-3.3-70B-Instruct`.** El proyecto traía `Qwen/Qwen2.5-7B-Instruct`, que el 23 de noviembre de 2026 ya no sirve ningún proveedor de Inference Providers: con un token válido, la API contestaba «model not supported by any provider» y el backend caía al respaldo sin que se notara. Se compararon Qwen2.5-72B y Llama-3.3-70B con tres sismos (superficial en zona preparada, moderado, profundo): los dos dieron JSON válido siempre; Llama tardó de 5 a 14 s por respuesta contra 11 a 13 s de Qwen, razonó en español cuando se le pidió y lo sirven muchos más proveedores (Qwen2.5-72B, solo dos). Llama-3.1-8B devolvió JSON roto.
+36. **La lectura de la respuesta de la IA es una función pura con pruebas** (`app/services/respuesta_ia.py`, 17 pruebas): tolera el markdown alrededor del JSON, una coma sobrante y cifras escritas como texto; descarta los impactos inválidos en lugar de fallar todos.
+37. **Sin token real no se llama a Hugging Face.** Antes, un `.env` con el texto de ejemplo hacía una llamada que fallaba por cada sismo nuevo. Ahora se usa el respaldo directamente y el token puede quedar vacío.
+38. **El razonamiento se pide en español**, que es el idioma de la interfaz; las claves del JSON no cambian. Antes salía en inglés dentro de una interfaz en español.
+39. **El reintento por modelo cargándose (503) está acotado a 3 intentos.** El anterior volvía a llamarse a sí mismo sin límite y, además, perdía el contexto histórico.
+40. **La IA y las reglas se muestran como lo que son.** Para el M 6,5 a 598 km, la IA estimó 15 muertes y las reglas 3; el panel dice cuál de las dos produjo cada estimación y el README dice que ninguna está validada.
