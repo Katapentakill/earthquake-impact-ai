@@ -3,17 +3,19 @@
   "private": true,
   "description": "Herramientas para grabar y montar el video de la app (solo desarrollo).",
   "scripts": {
-    "grabar": "electron grabar.js --js 20 --py 19",
+    "grabar": "electron grabar.js",
     "componer": "node componer.mjs",
     "video": "npm run grabar && npm run componer",
     "revisar": "node revisar.mjs es && node revisar.mjs en",
-    "grabar:movil": "electron grabar_movil.js --pruebas 30",
+    "grabar:movil": "electron grabar_movil.js",
     "componer:movil": "node componer_movil.mjs",
     "video:movil": "npm run grabar:movil && npm run componer:movil",
     "revisar:movil": "node revisar.mjs es salida/movil && node revisar.mjs en salida/movil",
     "ui": "electron ../capturas/verificar_ui.js",
     "movil": "electron ../capturas/verificar_movil.js",
-    "estimando": "electron ../capturas/verificar_estimando.js"
+    "estimando": "electron ../capturas/verificar_estimando.js",
+    "unir": "node unir.mjs",
+    "video:todo": "npm run video && npm run video:movil && npm run unir"
   },
   "dependencies": {
     "electron": "^36.4.0",

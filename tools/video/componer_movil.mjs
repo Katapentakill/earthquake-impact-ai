@@ -22,25 +22,15 @@ const escena = {};
 for (const e of eventos) if (e.k === 'scene') escena[e.name] = rel(e.t);
 const I = Object.assign({}, ...eventos.filter((e) => e.k === 'info'));
 const DURACION = meta.segundos;
-const PRUEBAS = '30'; // las mismas cifras que se pasan al grabador (--pruebas)
+const PRUEBAS = { py: '39', web: '20', movil: '30' }; // las mismas cifras que se pasan al grabador
 
 const num = (x, lang) => x.toLocaleString(lang === 'es' ? 'es-CL' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const profundoSinIa = I.origen === 'reglas' && I.claseProf === 'Profunda';
 
 // ---------- guion: cada línea dura desde su escena (+ un margen) hasta el comienzo de la escena siguiente ----------
 const GUION = [
-  { de: 'portada', mas: 0.5, hasta: 'antes-1',
-    es: () => 'El monitor sísmico, ahora en el celular: los mismos sismos del USGS y la misma estimación de impacto.',
-    en: () => 'The seismic monitor, now on the phone: the same USGS earthquakes and the same impact estimate.' },
-  { de: 'antes-1', mas: 1.0, hasta: 'antes-2',
-    es: () => 'Antes: la profundidad salía vacía, porque la app leía un campo que la API nunca mandó.',
-    en: () => 'Before: the depth showed blank, because the app read a field the API never sent.' },
-  { de: 'antes-2', mas: 1.0, hasta: 'resumen-1',
-    es: () => 'Y «Total de eventos: 1», un dato incorrecto. Ni siquiera arrancaba en el navegador.',
-    en: () => 'And «Total events: 1», a wrong figure. It did not even start in a browser.' },
-  { de: 'resumen-1', mas: 1.0, hasta: 'resumen-2',
-    es: (l) => `Ahora: ${I.total} sismos en las últimas 24 horas. El mayor, de magnitud ${num(I.mayorMag, l)}, en ${I.mayorLugar}.`,
-    en: (l) => `Now: ${I.total} earthquakes in the last 24 hours. The largest, magnitude ${num(I.mayorMag, l)}, at ${I.mayorLugar}.` },
+  { de: 'resumen-1', mas: 0.8, hasta: 'resumen-2',
+    es: (l) => `El celular recibe lo mismo: ${I.total} sismos en las últimas 24 horas; el mayor, de magnitud ${num(I.mayorMag, l)}, en ${I.mayorLugar}.`,
+    en: (l) => `The phone gets the same data: ${I.total} earthquakes in the last 24 hours; the largest, magnitude ${num(I.mayorMag, l)}, at ${I.mayorLugar}.` },
   { de: 'resumen-2', mas: 0.8, hasta: 'filtros',
     es: () => 'Debajo, los filtros por período, magnitud y profundidad.',
     en: () => 'Below, the filters by period, magnitude and depth.' },
@@ -54,12 +44,12 @@ const GUION = [
     es: () => 'Un toque abre el detalle: muertes, heridos y pérdidas estimados.',
     en: () => 'A tap opens the detail: estimated deaths, injured and losses.' },
   { de: 'detalle-2', mas: 0.6, hasta: 'mapa-1',
-    es: () => (profundoSinIa
-      ? `Sin IA, el impacto sale de reglas: a ${I.mayorProf} km de profundidad el efecto se atenúa y estima ${I.detalleMuertes} muertes.`
-      : 'El detalle dice de dónde sale la estimación: de reglas o de la IA.'),
-    en: () => (profundoSinIa
-      ? `Without AI, the impact comes from rules: at ${I.mayorProf} km deep the effect fades and it estimates ${I.detalleMuertes} deaths.`
-      : 'The detail says where the estimate comes from: rules or the AI.') },
+    es: () => (I.origen === 'ia'
+      ? `El detalle dice de dónde sale la estimación: «Análisis con IA», con su razonamiento en español (${I.detalleMuertes} muertes para este sismo).`
+      : 'El detalle dice de dónde sale la estimación: aquí, «Cálculo por reglas · sin IA».'),
+    en: () => (I.origen === 'ia'
+      ? `The detail says where the estimate comes from: «Análisis con IA», with its reasoning in Spanish (${I.detalleMuertes} deaths for this quake).`
+      : 'The detail says where the estimate comes from: here, «Cálculo por reglas · sin IA».') },
   { de: 'mapa-1', mas: 1.4, hasta: 'mapa-2',
     es: () => '«Ver en el mapa» lleva al epicentro y dibuja su radio de afectación.',
     en: () => '«See on the map» goes to the epicenter and draws its affected radius.' },
@@ -76,11 +66,11 @@ const GUION = [
     es: () => 'El tema oscuro cálido, con el mismo contraste medido: al menos 4,5 a 1.',
     en: () => 'The warm dark theme, with the same measured contrast: at least 4.5 to 1.' },
   { de: 'como', mas: 1.0, hasta: 'cierre',
-    es: () => `Cómo está hecho: Expo y TypeScript, ${PRUEBAS} pruebas, y la dirección de la API se calcula sola. Probado en el navegador y compilado para Android e iOS.`,
-    en: () => `How it is built: Expo and TypeScript, ${PRUEBAS} tests, and the API address works itself out. Tested in a browser and compiled for Android and iOS.` },
+    es: () => `${PRUEBAS.py} pruebas del backend, ${PRUEBAS.web} de la web y ${PRUEBAS.movil} del celular. Se vio en un navegador, no en un teléfono.`,
+    en: () => `${PRUEBAS.py} backend, ${PRUEBAS.web} web and ${PRUEBAS.movil} phone tests. Seen in a browser, not on a phone.` },
   { de: 'cierre', mas: 1.2, hasta: 'fin',
-    es: () => 'Rediseño del cliente móvil, pruebas y documentación: Alexander Tapia. Datos del USGS; mapa de OpenStreetMap.',
-    en: () => 'Mobile client redesign, tests and documentation: Alexander Tapia. Data from USGS; map from OpenStreetMap.' },
+    es: () => 'Diseño, backend, IA, interfaz, pruebas y documentación: Alexander Tapia. Datos del USGS; mapa de OpenStreetMap.',
+    en: () => 'Design, backend, AI, interface, tests and documentation: Alexander Tapia. Data from USGS; map from OpenStreetMap.' },
 ];
 
 const faltan = [...new Set(GUION.flatMap((g) => [g.de, g.hasta]).filter((n) => !(n in escena)))];

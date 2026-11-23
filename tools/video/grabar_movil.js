@@ -5,7 +5,7 @@
  * capturePage() y la entrega a ffmpeg. Es la misma mecánica de grabar.js.
  *
  *   cd mobile && EXPO_PUBLIC_API_URL=http://localhost:8010/api npx expo start --web --port 8081     (con el backend encendido)
- *   npx electron tools/video/grabar_movil.js [--url http://localhost:8081] [--salida carpeta] [--pruebas 30]
+ *   npx electron tools/video/grabar_movil.js [--url http://localhost:8081] [--salida carpeta] [--py 39 --web 20 --movil 30]
  *
  * Escribe en tools/video/salida/movil/: toma.mkv, eventos.json y meta.json. Después: node tools/video/componer_movil.mjs
  */
@@ -19,11 +19,10 @@ const argumentos = process.argv.slice(2);
 const opcion = (nombre, porDefecto) => { const i = argumentos.indexOf(`--${nombre}`); return i >= 0 ? argumentos[i + 1] : porDefecto; };
 const URL = opcion('url', 'http://localhost:8081');
 const salida = path.resolve(opcion('salida', path.join(__dirname, 'salida', 'movil')));
-const cifras = { pruebas: opcion('pruebas', '30') };
+const cifras = { py: opcion('py', '39'), web: opcion('web', '20'), movil: opcion('movil', '30') };
 const FPS = 30;
 const ANCHO = 390;
 const ALTO = 844;
-const RAIZ = path.resolve(__dirname, '..', '..');
 
 fs.mkdirSync(salida, { recursive: true });
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
@@ -32,7 +31,6 @@ app.commandLine.appendSwitch('disable-features', 'CalculateNativeWindowOcclusion
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-const imagen = (archivo) => `data:image/png;base64,${fs.readFileSync(path.join(RAIZ, 'docs', 'img', archivo)).toString('base64')}`;
 
 app.whenReady().then(() => grabar().catch((error) => {
   console.error('Falló la grabación:', error);
@@ -85,7 +83,7 @@ async function grabar() {
     }
   })();
 
-  const opciones = { cifras, imgs: { antes1: imagen('movil/antes/alertas.png'), antes2: imagen('movil/antes/sistema.png') } };
+  const opciones = { cifras };
   js(`window.__D.run2(${JSON.stringify(opciones)})`);
   const inicioGuion = Date.now();
   while (!(await js('window.__D.done')) && Date.now() - inicioGuion < 8 * 60 * 1000) await esperar(500);

@@ -193,26 +193,26 @@
 
     // --- portada y el camino de los datos ---
     marca('portada');
-    const c1 = cardPortada(); await mostrar(c1); await S(4800);
+    const c1 = cardPortada(); await mostrar(c1); await S(4600);
     marca('flujo-1');
     const c2 = cardFlujo(modelo); await mostrar(c2); await ocultar(c1);
-    paso(c2, 1, 'Cada 3 minutos, el backend <b>pide al USGS</b> los sismos nuevos.'); await S(7600);
+    paso(c2, 1, 'Cada 3 minutos, el backend <b>pide al USGS</b> los sismos nuevos.'); await S(6800);
     marca('flujo-2');
-    paso(c2, 2, 'Con un token de Hugging Face, <b>una IA</b> estima el impacto; sin él, o si falla, <b>unas reglas</b>.'); await S(8600);
+    paso(c2, 2, 'Con un token de Hugging Face, <b>una IA</b> estima el impacto; sin él, o si falla, <b>unas reglas</b>.'); await S(7800);
     marca('flujo-3');
-    paso(c2, 3, 'Todo se guarda y <b>se avisa en vivo</b> a la web y al celular.'); await S(7600);
+    paso(c2, 3, 'Todo se guarda y <b>se avisa en vivo</b> a la web y al celular.'); await S(6600);
     marca('resumen');
     await ocultar(c2);
 
     // --- resumen del día ---
-    await pasear([[0.2, 0.2], [0.42, 0.2], [0.64, 0.2], [0.84, 0.2]], 900, 650);
-    await S(1200);
+    await pasear([[0.2, 0.2], [0.42, 0.2], [0.64, 0.2], [0.84, 0.2]], 900, 600);
+    await S(900);
 
     // --- mapa ---
     marca('mapa');
     await desplazar(Y_MAPA, 1100);
-    await pasear([[0.2, 0.55], [0.42, 0.5], [0.3, 0.7]], 1100, 800);
-    await S(500);
+    await pasear([[0.2, 0.55], [0.42, 0.5], [0.3, 0.7]], 1000, 700);
+    await S(300);
 
     // --- un sismo estimado por la IA ---
     marca('panel-ia');
@@ -220,9 +220,20 @@
     if (!mkIa) throw new Error(`No se encontró el marcador de M ${coma(ia.magnitud)} «${ia.lugar}» en el mapa`);
     await D.clic(mkIa, 'sismo estimado por la IA', 1300);
     if (!(await esperarQue(() => /Análisis con IA/.test(textoPanel()) && textoPanel().includes(ia.lugar), 20000))) throw new Error('El panel no mostró «Análisis con IA» para el sismo elegido');
-    await S(2200);
+    await S(2000);
     marca('panel-ia-2');
-    await verEn($('.panel-lado .detalle') || $('.panel-lado'), 150); await S(7600);
+    await verEn($('.panel-lado .detalle') || $('.panel-lado'), 150); await S(6800);
+    await desplazar(Y_MAPA, 900); await S(300);
+
+    // --- la rueda de carga, en vivo: se reprocesa este mismo sismo ---
+    marca('estimando-pedir');
+    D.pedir = ia.event_id; // grabar.js lo borra de la base local y le pide al backend que lo vuelva a procesar
+    if (!(await esperarQue(() => !!$('.panel-lado .estimando'), 30000))) throw new Error('No apareció la rueda de carga: ¿el backend guarda el sismo antes de la IA?');
+    marca('estimando');
+    if (!(await esperarQue(() => /Análisis con IA/.test(textoPanel()) && !$('.panel-lado .estimando'), 120000))) throw new Error('La IA no terminó de estimar el sismo en dos minutos');
+    marca('estimado');
+    await S(1600);
+    await verEn($('.panel-lado .detalle') || $('.panel-lado'), 150); await S(4800);
     await desplazar(Y_MAPA, 900); await S(300);
 
     // --- un sismo estimado por reglas ---
@@ -231,54 +242,54 @@
     if (!mkRe) throw new Error(`No se encontró el marcador de M ${coma(reglas.magnitud)} «${reglas.lugar}» en el mapa`);
     await D.clic(mkRe, 'sismo estimado por reglas', 1300);
     if (!(await esperarQue(() => /Cálculo por reglas/.test(textoPanel()) && textoPanel().includes(reglas.lugar), 20000))) throw new Error('El panel no mostró «Cálculo por reglas» para el sismo elegido');
-    await S(7400);
+    await S(6400);
 
     // --- filtros y búsqueda ---
     marca('filtros');
-    await D.clic(boton('5,0 o más', '.chip'), 'magnitud 5', 1000); await S(2400);
-    await D.clic(boton('Superficial', '.chip'), 'profundidad superficial', 900); await S(2600);
-    await D.clic(boton('Restablecer'), 'restablecer', 900); await S(1400);
+    await D.clic(boton('5,0 o más', '.chip'), 'magnitud 5', 1000); await S(2000);
+    await D.clic(boton('Superficial', '.chip'), 'profundidad superficial', 900); await S(2200);
+    await D.clic(boton('Restablecer'), 'restablecer', 900); await S(1000);
     marca('busqueda');
     await D.clic($('#q'), 'buscar', 900); await S(300);
-    await escribir($('#q'), termino, 190); await S(2800);
-    vaciar($('#q')); await S(700);
+    await escribir($('#q'), termino, 190); await S(2200);
+    vaciar($('#q')); await S(600);
     marca('periodo');
-    await D.clic(boton('7 días', '.chip'), 'periodo 7', 900); await S(3000);
-    await D.clic(boton('24 horas', '.chip'), 'periodo 24', 800); await S(1500);
+    await D.clic(boton('7 días', '.chip'), 'periodo 7', 900); await S(2600);
+    await D.clic(boton('24 horas', '.chip'), 'periodo 24', 800); await S(1000);
 
     // --- gráficos y tabla ---
     marca('graficos');
     await verEn($('#h-tiempo'), 110);
-    await pasear([[0.3, 0.45], [0.6, 0.55], [0.4, 0.7]], 1000, 1100); await S(1200);
+    await pasear([[0.3, 0.45], [0.6, 0.55]], 1000, 1000); await S(800);
     marca('graficos-2');
     await verEn($('#h-hist'), 110);
-    await pasear([[0.3, 0.45], [0.75, 0.45]], 1000, 1500); await S(1800);
+    await pasear([[0.3, 0.45], [0.75, 0.45]], 1000, 1200); await S(1200);
     marca('tabla');
     await verEn($('#h-tabla'), 100);
-    await S(1200);
-    await D.clic(boton('Magnitud', 'thead th button'), 'ordenar por magnitud', 1000); await S(2000);
+    await S(800);
+    await D.clic(boton('Magnitud', 'thead th button'), 'ordenar por magnitud', 1000); await S(1500);
     const csv = boton('Exportar CSV');
-    if (csv) { const [x, y] = centro(csv); await glide(x, y, 900); await S(1800); }
+    if (csv) { const [x, y] = centro(csv); await glide(x, y, 900); await S(1500); }
 
     // --- tema oscuro ---
     marca('oscuro');
+    await desplazar(0, 1000); await S(400);
+    await D.clic(boton('Oscuro', '.seg button'), 'tema oscuro', 1100); await S(1600);
+    await pasear([[0.25, 0.5], [0.55, 0.6], [0.8, 0.5]], 1000, 800);
+    await verEn($('#h-tiempo'), 110); await S(1600);
     await desplazar(0, 1000); await S(500);
-    await D.clic(boton('Oscuro', '.seg button'), 'tema oscuro', 1100); await S(1800);
-    await pasear([[0.25, 0.5], [0.55, 0.6], [0.8, 0.5]], 1000, 900);
-    await verEn($('#h-tiempo'), 110); await S(2200);
-    await desplazar(0, 1000); await S(600);
-    await D.clic(boton('Crema', '.seg button'), 'tema crema', 900); await S(1000);
+    await D.clic(boton('Crema', '.seg button'), 'tema crema', 900); await S(800);
 
     // --- en vivo ---
     marca('envivo');
     const vivo = $('.live');
     if (vivo) { const [x, y] = centro(vivo); await glide(x, y, 1100); }
-    await S(6400);
+    await S(5600);
 
     // --- paso al celular ---
     cur.style.display = 'none'; // sin cursor sobre las tarjetas
     marca('celular');
-    const c4 = cardCelular(); await mostrar(c4); await S(3800);
+    const c4 = cardCelular(); await mostrar(c4); await S(3400);
     marca('fin');
     D.done = true;
   };

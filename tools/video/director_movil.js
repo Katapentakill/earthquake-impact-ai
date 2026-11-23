@@ -127,23 +127,15 @@
   const ocultar = async (c) => { c.classList.remove('__on'); await sleep(850); c.remove(); };
   const ONDAS = '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="43" fill="none" stroke="#a63f14" stroke-width="4" opacity=".32"/><circle cx="50" cy="50" r="32" fill="none" stroke="#a63f14" stroke-width="4" opacity=".62"/><circle cx="50" cy="50" r="22" fill="none" stroke="#a63f14" stroke-width="4"/><circle cx="50" cy="50" r="10" fill="#a63f14"/></svg>';
   const MARCA = `<div class="__marcaapp">${ONDAS}</div>`;
-  const cardPortada = () => tarjeta(`<div style="text-align:center">${MARCA}
-    <h1>Monitor sísmico</h1><p style="color:#f0a15e;font-weight:600;font-size:18px">Cliente móvil</p>
-    <p style="margin-top:14px">Expo · React Native · TypeScript</p></div>`);
-  const cardAntes = (src, ancho, nota) => tarjeta(`<div class="__marco"><span class="__etiqueta">ANTES</span>
-    <img src="${src}" alt="" style="width:${ancho}px"><p style="color:#4d4535;font-size:15px;text-align:center">${nota}</p></div>`, '__antes');
-  const cardComo = (c) => tarjeta(`<div style="text-align:center"><h1 style="margin-top:0">Cómo está hecho</h1>
-    <div class="__pila">
-      <div class="__caja"><b>USGS → FastAPI → MariaDB</b><span>el mismo backend de la web</span></div><span class="__flecha">↓</span>
-      <div class="__caja"><b>REST y WebSocket</b><span>alertas en vivo</span></div><span class="__flecha">↓</span>
-      <div class="__caja"><b>Expo · expo-router</b><span>cuatro pestañas y un detalle</span></div>
-    </div>
+  const cardComo = (c) => tarjeta(`<div style="text-align:center"><h1 style="margin-top:0">Cómo se comprueba</h1>
+    <p>Pruebas automáticas de cada parte</p>
     <div class="__datos">
-      <div class="__dato"><b>${c.pruebas}</b><span>pruebas</span></div>
+      <div class="__dato"><b>${c.py}</b><span>del backend (Python)</span></div>
+      <div class="__dato"><b>${c.web}</b><span>de la web</span></div>
+      <div class="__dato"><b>${c.movil}</b><span>del celular</span></div>
       <div class="__dato"><b>3</b><span>compilaciones: Android, iOS y web</span></div>
-      <div class="__dato"><b>4,5 : 1</b><span>contraste mínimo medido</span></div>
-      <div class="__dato"><b>2</b><span>temas de color</span></div>
-    </div></div>`);
+    </div>
+    <p style="margin-top:18px;font-size:14px">Contraste de texto medido: al menos 4,5 a 1, en los dos temas</p></div>`);
   const cardCierre = () => tarjeta(`<div style="text-align:center">${MARCA}
     <h1>Alexander Tapia</h1>
     <p>Rediseño del cliente móvil, pruebas y documentación</p>
@@ -156,8 +148,7 @@
     const D = window.__D;
     const S = sleep;
     log.length = 0; D.done = false; D.err = null;
-    const imgs = opciones.imgs;
-    const cifras = opciones.cifras || { pruebas: '30' };
+    const cifras = opciones.cifras || { py: '39', web: '20', movil: '30' };
 
     // Lo que muestra la pantalla al empezar: el resumen del día y un segundo sismo para la búsqueda.
     const t = texto();
@@ -176,17 +167,8 @@
     const termino = (otro.lugar.includes(',') ? otro.lugar.split(',').pop() : otro.lugar.split(' ').pop()).trim();
     info({ total, mayorMag: numero(m[1]), mayorLugar: m[2], mayorProf: parseInt(m[3], 10), termino, otroLugar: otro.lugar });
 
-    // --- portada y «antes» ---
-    marca('portada');
-    const c1 = cardPortada(); await mostrar(c1); await S(5600);
-    marca('antes-1');
-    const c2 = cardAntes(imgs.antes1, 290, 'Alertas del cliente original: «Profundidad: km» sin dato'); await mostrar(c2); await ocultar(c1); await S(5200);
-    marca('antes-2');
-    const c3 = cardAntes(imgs.antes2, 290, 'Sistema: «Total de eventos: 1», un dato incorrecto'); await mostrar(c3); await ocultar(c2); await S(5200);
-
     // --- resumen ---
     marca('resumen-1');
-    await ocultar(c3);
     await S(900);
     await glide(innerWidth * 0.3, 190, 900); await S(600);
     await glide(innerWidth * 0.75, 190, 900); await S(600);
@@ -259,9 +241,9 @@
     // --- cómo está hecho y cierre ---
     dedo.style.display = 'none';
     marca('como');
-    const c5 = cardComo(cifras); await mostrar(c5); await S(8800);
+    const c5 = cardComo(cifras); await mostrar(c5); await S(7400);
     marca('cierre');
-    const c6 = cardCierre(); await mostrar(c6); await ocultar(c5); await S(6200);
+    const c6 = cardCierre(); await mostrar(c6); await ocultar(c5); await S(5600);
     marca('fin');
     D.done = true;
   };

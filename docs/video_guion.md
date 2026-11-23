@@ -1,28 +1,46 @@
-# Guion del video (≈ 2:28, solo la app, sin voz)
+# Guion del video (≈ 4:36, solo la app, sin voz)
 
-Video silencioso con **subtítulos en español e inglés**, un círculo en cada clic, sonido de clics y de escritura y música ambiental a poco volumen (sintetizada, sin derechos de autor). Se graba solo la ventana de la app corriendo, con los sismos reales del momento. Los subtítulos salen de `tools/video/componer.mjs` y se sincronizan con la hora real de cada escena; las cifras y los lugares entre llaves (`{…}`) se toman de lo que mostraba la pantalla durante la toma, no de texto escrito a mano. La interfaz está en español en las dos versiones.
+Video silencioso con **subtítulos en español e inglés**, un círculo en cada clic (un «dedo» en el celular), sonido de clics y de escritura y música ambiental a poco volumen (sintetizada, sin derechos de autor). Explica cómo funciona la app, con los sismos reales del momento. Los subtítulos salen de `tools/video/componer.mjs` (web) y `componer_movil.mjs` (celular) y se sincronizan con la hora real de cada escena; las cifras y los lugares entre llaves (`{…}`) se toman de lo que mostraba la pantalla durante la toma, no de texto escrito a mano.
 
-Cómo se graba y se monta: [`guia_video.md`](guia_video.md). Los tiempos de abajo son los de la última grabación (23 de noviembre de 2026, con `{total}` = 17 sismos; el mayor, M 6,5 en *Vanuatu region* a 601 km; el segundo, superficial, a 44 km).
+Cómo se graba y se monta: [`guia_video.md`](guia_video.md). Los tiempos son los de la última grabación (23 de noviembre de 2026).
 
-| Tiempo | Escena | Acción en pantalla | Subtítulo (ES) | Subtitle (EN) |
-|---|---|---|---|---|
-| 0:00 | `portada` | Tarjeta con la marca, el título y «FastAPI · Next.js · MariaDB · USGS en tiempo real». | Monitor sísmico global: sismos del USGS en tiempo real, con estimación de impacto. | Global seismic monitor: live USGS earthquakes with an impact estimate. |
-| 0:06 | `antes-1` | Tarjeta «ANTES» con la captura de la interfaz original. | Antes: degradados azul y morado, interfaz en inglés y un fondo blanco que cansa la vista. | Before: blue and purple gradients, an English interface and a white background that tires the eyes. |
-| 0:13 | `antes-2` | Captura de la versión en celular de la interfaz original. | En el celular, los filtros ocupaban la primera pantalla. Y sin IA, un sismo a 601 km de profundidad estimaba 150 muertos. | On a phone, the filters filled the first screen. And without AI, a quake 601 km deep was estimated at 150 deaths. |
-| 0:20 | `resumen-1` | Tema crema; el cursor recorre las cuatro tarjetas de resumen. | Ahora: {total} sismos en las últimas 24 horas. El mayor, de magnitud {mayorMag}, en {mayorLugar}. | Now: {total} earthquakes in the last 24 hours. The largest, magnitude {mayorMag}, at {mayorLugar}. |
-| 0:29 | `mapa-1` | La página baja hasta el mapa; el cursor lo recorre. | El mapa muestra cada epicentro con el color de su magnitud, sobre un tema crema que no cansa la vista. | The map shows every epicenter in the color of its magnitude, on a cream theme that is easy on the eyes. |
-| 0:37 | `panel-1` | El cursor va al panel del sismo mayor: «Cálculo por reglas · sin IA». | Sin IA, el impacto sale de reglas. Un sismo profundo ({mayorProf} km) casi no se siente en superficie. | Without AI, the impact comes from rules. A deep quake ({mayorProf} km) is barely felt at the surface. |
-| 0:44 | `mapa-2` | Clic en el marcador de un sismo superficial; el panel cambia. | Otro sismo, superficial ({otroProf} km): aquí el cálculo estima más heridos que para el profundo. | Another quake, shallow ({otroProf} km): here the estimate has more injured than for the deep one. |
-| 0:52 | `filtros-1` | Clic en «5,0 o más», luego «Superficial» y «Restablecer». | Filtros por magnitud y profundidad: el mapa, los gráficos y la tabla se actualizan juntos. | Filters by magnitude and depth: the map, charts and table update together. |
-| 1:02 | `filtros-2` | Se escribe el nombre de un país en la búsqueda. | La búsqueda filtra por lugar o ID mientras escribes. | Search filters by place or ID as you type. |
-| 1:09 | `periodo` | Clic en «7 días» y de vuelta a «24 horas». | El período se amplía a 7 o 30 días. | The period extends to 7 or 30 days. |
-| 1:15 | `graficos` | La página baja al gráfico de magnitud en el tiempo. | La magnitud de cada sismo a lo largo de las últimas 24 horas. | The magnitude of every quake over the last 24 hours. |
-| 1:24 | `graficos-2` | Histograma por magnitud y barras por profundidad. | Y cuántos sismos hay por tramo de magnitud y por profundidad. | And how many quakes there are by magnitude range and by depth. |
-| 1:32 | `tabla` | La tabla; clic en el encabezado «Magnitud». | La tabla se ordena por cualquier columna y se puede exportar a CSV. | The table sorts by any column and can be exported to CSV. |
-| 1:37 | `tabla-2` | Clic en una fila; la página sube y el mapa vuela hasta ese sismo. | Un clic en una fila lleva el mapa hasta ese sismo. | A click on a row takes the map to that quake. |
-| 1:45 | `oscuro` | Tema oscuro: recorrido por el tablero y por el gráfico; vuelta a crema. | El tema oscuro cálido. El contraste del texto es de al menos 4,5 a 1 en los dos temas, medido por script. | The warm dark theme. Text contrast is at least 4.5 to 1 in both themes, measured by script. |
-| 2:01 | `celular` | Tarjeta con la app en celular, en crema y en oscuro. | Y se adapta al celular. | And it adapts to phones. |
-| 2:07 | `como` | Tarjeta «Cómo está hecho»: USGS → FastAPI → MariaDB → Next.js, y 20 + 19 pruebas. | Cómo está hecho: el backend consulta al USGS cada 3 minutos, guarda en MariaDB y avisa por WebSocket. 20 pruebas de JavaScript y 19 de Python. | How it is built: the backend polls USGS every 3 minutes, stores in MariaDB and notifies over WebSocket. 20 JavaScript and 19 Python tests. |
-| 2:19 | `cierre` | Tarjeta con el nombre, los créditos de datos y mapa, y el repositorio. | Rediseño, estimación por profundidad, pruebas y documentación: Alexander Tapia. Datos del USGS; mapa de OpenStreetMap. | Redesign, depth-based estimate, tests and documentation: Alexander Tapia. Data from USGS; map from OpenStreetMap. |
+## Tramo 1: la web (2:41)
 
-Si el sismo mayor del día no es profundo o el segundo no es superficial, el subtítulo de `mapa-2` pasa a un texto genérico («Un clic en el mapa cambia el sismo del panel») para no afirmar algo que la pantalla no muestra.
+| Tiempo | Escena | Acción en pantalla | Subtítulo (ES) |
+|---|---|---|---|
+| 0:00 | `portada` | Tarjeta con la marca y «Cómo funciona». | Monitor sísmico global: así funciona, del USGS a tu pantalla. |
+| 0:05 | `flujo-1` | El camino de cada sismo: se ilumina USGS y FastAPI. | Cada 3 minutos, el backend consulta al USGS los sismos de magnitud 4,5 o más y calcula el radio que afectan. |
+| 0:14 | `flujo-2` | Se ilumina la estimación: IA o reglas. | Luego estima el impacto: una IA (Llama 3.3 70B, por Hugging Face) razona país por país; sin token, o si falla, unas reglas por profundidad. |
+| 0:22 | `flujo-3` | Se iluminan MariaDB, WebSocket y las dos apps. | Todo se guarda en MariaDB y se avisa por WebSocket a la web y al celular. |
+| 0:28 | `resumen` | El cursor recorre las cuatro tarjetas. | La web muestra las últimas 24 horas: {total} sismos; el mayor, de magnitud {mayorMag}. |
+| 0:36 | `mapa` | La página baja al mapa. | Cada epicentro lleva el color de su magnitud. |
+| 0:43 | `panel-ia` | Clic en el sismo estimado por la IA; el panel dice «Análisis con IA» y se ve su razonamiento. | Un clic abre el panel: para este sismo de magnitud {iaMag} a {iaProf} km, la IA estimó {iaMuertes} muertes y {iaHeridos} heridos, y explica su razonamiento. |
+| 0:55 | `estimando-pedir` → `estimando` → `estimado` | Se reprocesa ese sismo: el panel muestra «Estimando el impacto…» con una rueda de carga hasta que la IA responde y el panel se completa solo. | Para mostrarlo se reprocesa este sismo: aparece al instante con una rueda de carga mientras la IA lo estima y, al terminar, el panel se completa solo. |
+| 1:26 | `panel-reglas` | Clic en otro sismo; el panel dice «Cálculo por reglas · sin IA». | Este otro (M {reglasMag}, {reglasProf} km) lo calcularon las reglas, y el panel lo dice: «Cálculo por reglas · sin IA». |
+| 1:35 | `filtros` | «5,0 o más», «Superficial» y «Restablecer». | Filtros por magnitud y profundidad: el mapa, los gráficos y la tabla se actualizan juntos. |
+| 1:44 | `busqueda` | Se escribe una palabra en la búsqueda. | La búsqueda filtra por lugar o ID mientras escribes. |
+| 1:49 | `periodo` | «7 días» y de vuelta a «24 horas». | El período llega hasta 30 días. |
+| 1:55 | `graficos`, `graficos-2` | La magnitud en el tiempo, y los histogramas por magnitud y por profundidad. | La magnitud de cada sismo a lo largo del período. / Y cuántos sismos hay por magnitud y por profundidad. |
+| 2:07 | `tabla` | Orden por «Magnitud» y el botón «Exportar CSV». | La tabla se ordena por cualquier columna y se exporta a CSV. |
+| 2:14 | `oscuro` | Tema oscuro y vuelta a crema. | El tema oscuro cálido, con un contraste de texto de al menos 4,5 a 1, medido por script. |
+| 2:30 | `envivo` | El cursor sobre «En vivo». | «En vivo» indica que el WebSocket está conectado: un sismo nuevo aparece sin recargar la página. |
+| 2:36 | `celular` | Tarjeta «Y la misma información, en el celular». | Y la misma información, en el celular. |
+
+## Tramo 2: el celular (1:55)
+
+El teléfono queda a la izquierda, con la etiqueta fija «Cliente móvil · vista web a tamaño de teléfono», y los subtítulos a la derecha.
+
+| Escena | Acción en pantalla | Subtítulo (ES) |
+|---|---|---|
+| `resumen-1` | Las cuatro tarjetas de la pestaña Resumen. | El celular recibe lo mismo: {total} sismos en las últimas 24 horas; el mayor, de magnitud {mayorMag}, en {mayorLugar}. |
+| `resumen-2`, `filtros` | Los chips de período, magnitud y profundidad. | Debajo, los filtros… / Cada filtro actualiza las tarjetas y la lista al instante. |
+| `busqueda` | Se escribe en la búsqueda. | La búsqueda filtra por lugar mientras escribes. |
+| `detalle-1`, `detalle-2` | Un toque abre el detalle del sismo mayor; baja hasta el razonamiento. | Un toque abre el detalle… / El detalle dice de dónde sale la estimación: «Análisis con IA», con su razonamiento en español ({detalleMuertes} muertes para este sismo). |
+| `mapa-1`, `mapa-2` | «Ver en el mapa»; «Ver todo el mundo»; un toque en otro epicentro. | «Ver en el mapa» lleva al epicentro y dibuja su radio de afectación. / Al tocar otro epicentro, el mapa muestra su resumen. |
+| `alertas` | La pestaña Alertas. | Alertas: los sismos desde el umbral elegido. Los nuevos llegan en vivo por WebSocket. |
+| `ajustes-1` | La pestaña Ajustes. | Ajustes: el tema, el umbral de las alertas y el estado de la conexión. |
+| `oscuro` | Tema oscuro; Resumen, Mapa y Ajustes; vuelta a crema. | El tema oscuro cálido, con el mismo contraste medido: al menos 4,5 a 1. |
+| `como` | Tarjeta «Cómo se comprueba»: 39 pruebas del backend, 20 de la web, 30 del celular. | 39 pruebas del backend, 20 de la web y 30 del celular. Se vio en un navegador, no en un teléfono. |
+| `cierre` | Tarjeta con el nombre, los créditos y el repositorio. | Diseño, backend, IA, interfaz, pruebas y documentación: Alexander Tapia. Datos del USGS; mapa de OpenStreetMap. |
+
+El subtítulo de `detalle-2` pasa a un texto sobre las reglas si el sismo mayor no lo estimó la IA, para no afirmar algo que la pantalla no muestra.

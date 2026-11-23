@@ -1,15 +1,21 @@
 'use strict';
 /**
- * Graba la app que está corriendo en el navegador de Electron, sin depender del escritorio: abre la página, inyecta el
+ * Graba la web que está corriendo en el navegador de Electron, sin depender del escritorio: abre la página, inyecta el
  * director (director.js), captura la ventana a 30 cuadros por segundo con capturePage() y la entrega a ffmpeg.
  *
- *   npx electron tools/video/grabar.js [--url http://localhost:3000] [--salida carpeta] [--js 20 --py 19]
+ *   npx electron tools/video/grabar.js [--url http://localhost:3000] [--api http://localhost:8010/api] [--salida carpeta]
+ *                                      [--db seismic_mariadb] [--modelo "Llama 3.3 70B"]
  *
- * Antes hay que tener la app encendida (docker compose up -d) y con sismos cargados. Escribe en la carpeta de salida
- * (por defecto tools/video/salida/): toma.mkv, eventos.json y meta.json. Después: node tools/video/componer.mjs
+ * Antes hay que tener la app encendida (docker compose up -d) y con sismos cargados, y el backend con un token de
+ * Hugging Face (el video muestra un sismo estimado por la IA). Escribe en la carpeta de salida (por defecto
+ * tools/video/salida/): toma.mkv, eventos.json y meta.json. Después: node tools/video/componer.mjs
+ *
+ * Para enseñar la rueda de carga en vivo, el director pide (window.__D.pedir) que se reprocese un sismo: este programa lo
+ * borra de la base de datos local (docker exec en el contenedor de MariaDB) y le pide al backend que lo vuelva a procesar.
+ * Es el camino real de un sismo nuevo; solo se dispara a propósito, y la guía del video lo dice.
  */
 const { app, BrowserWindow } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const ffmpeg = require('ffmpeg-static');
@@ -17,12 +23,13 @@ const ffmpeg = require('ffmpeg-static');
 const argumentos = process.argv.slice(2);
 const opcion = (nombre, porDefecto) => { const i = argumentos.indexOf(`--${nombre}`); return i >= 0 ? argumentos[i + 1] : porDefecto; };
 const URL = opcion('url', 'http://localhost:3000');
+const API = opcion('api', 'http://localhost:8010/api');
+const CONTENEDOR_DB = opcion('db', 'seismic_mariadb');
+const MODELO = opcion('modelo', 'Llama 3.3 70B');
 const salida = path.resolve(opcion('salida', path.join(__dirname, 'salida')));
-const cifras = { js: opcion('js', '20'), py: opcion('py', '19') };
 const FPS = 30;
 const ANCHO = 1280;
 const ALTO = 800;
-const RAIZ = path.resolve(__dirname, '..', '..');
 
 fs.mkdirSync(salida, { recursive: true });
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
@@ -31,7 +38,17 @@ app.commandLine.appendSwitch('disable-features', 'CalculateNativeWindowOcclusion
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-const imagen = (archivo) => `data:image/png;base64,${fs.readFileSync(path.join(RAIZ, 'docs', 'img', archivo)).toString('base64')}`;
+
+// Borra el sismo de la base local y pide al backend que lo procese otra vez (sin esperar a que termine).
+function reprocesar(id) {
+  const sql = `DELETE FROM eventos_sismicos WHERE event_id='${String(id).replace(/[^\w.-]/g, '')}'`;
+  execFile('docker', ['exec', CONTENEDOR_DB, 'sh', '-c', `C=$(command -v mariadb || command -v mysql); "$C" -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE" -e "${sql}"`], (error) => {
+    if (error) { console.error('No se pudo borrar el sismo de la base local:', error.message); return; }
+    fetch(`${API}/events/process`, { method: 'POST' })
+      .then((r) => r.json()).then((j) => console.log(`reprocesado ${id}:`, JSON.stringify(j)))
+      .catch((e) => console.error('No se pudo pedir el procesamiento:', e.message));
+  });
+}
 
 app.whenReady().then(() => grabar().catch((error) => {
   console.error('Falló la grabación:', error);
@@ -82,14 +99,22 @@ async function grabar() {
       if (espera > 0) await esperar(espera);
     }
   })();
+  // El director pide acciones que solo este proceso puede hacer (tocar la base de datos local).
+  const atento = (async () => {
+    while (grabando) {
+      const id = await js('window.__D.pedir || null');
+      if (id) { await js('window.__D.pedir = null'); reprocesar(id); }
+      await esperar(150);
+    }
+  })();
 
-  const opciones = { cifras, imgs: { antes1: imagen('antes/01-vista-general.png'), antes2: imagen('antes/03-celular.png'), cel1: imagen('celular-crema.png'), cel2: imagen('celular-oscuro.png') } };
-  js(`window.__D.run2(${JSON.stringify(opciones)})`);
+  js(`window.__D.run2(${JSON.stringify({ modelo: MODELO })})`);
   const inicioGuion = Date.now();
-  while (!(await js('window.__D.done')) && Date.now() - inicioGuion < 8 * 60 * 1000) await esperar(500);
+  while (!(await js('window.__D.done')) && Date.now() - inicioGuion < 10 * 60 * 1000) await esperar(500);
   await esperar(400);
   grabando = false;
   await bucle;
+  await atento;
   cmd.stdin.end();
   await terminoFfmpeg;
 
