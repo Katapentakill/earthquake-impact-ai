@@ -1,30 +1,15 @@
-// Runtime configuration for API endpoints
-// This file is loaded at runtime, allowing environment variables to be used dynamically
+// Dónde está el backend. La decisión vive en direccion.ts (función pura, con pruebas); aquí solo se leen los datos de Expo.
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { resolverUrlApi, urlWebSocket } from './direccion';
 
-export const getApiConfig = () => {
-  // IMPORTANT: When running on Expo Go (phone), use your PC's IP address, NOT Docker service names
-  // Docker service name "backend" only works inside Docker network
-  // Your phone needs to access via your PC's actual IP: 192.168.1.126
-  const defaultApiUrl = 'http://192.168.1.126:8000/api';
-  const defaultWsUrl = 'ws://192.168.1.126:8000/api/ws';
+/** Servidor de Expo que sirve la app ('192.168.1.20:8081'); en Expo Go es la PC del desarrollador. */
+const hostEmpaquetador = Constants.expoConfig?.hostUri ?? null;
 
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL || defaultApiUrl;
-  const wsUrl = process.env.EXPO_PUBLIC_WEBSOCKET_URL || defaultWsUrl;
+export const API_URL = resolverUrlApi({
+  plataforma: Platform.OS,
+  urlApi: process.env.EXPO_PUBLIC_API_URL,
+  hostEmpaquetador,
+});
 
-  console.log('🌐 API Config Loaded:', {
-    apiUrl,
-    wsUrl,
-    note: 'Using PC IP (192.168.1.126) for Expo Go on phone',
-    env: {
-      EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
-      EXPO_PUBLIC_WEBSOCKET_URL: process.env.EXPO_PUBLIC_WEBSOCKET_URL,
-    },
-  });
-
-  return {
-    apiUrl,
-    wsUrl,
-  };
-};
-
-export const apiConfig = getApiConfig();
+export const WS_URL = process.env.EXPO_PUBLIC_WEBSOCKET_URL?.trim() || urlWebSocket(API_URL);
