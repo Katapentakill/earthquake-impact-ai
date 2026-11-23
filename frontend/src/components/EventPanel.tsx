@@ -64,6 +64,7 @@ export default function EventPanel({ evento, ahora }: Props) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'cargando' });
   const [reintento, setReintento] = useState(0);
   const id = evento?.event_id;
+  const estimandoAhora = Boolean(evento?.estimando);
 
   useEffect(() => {
     if (!id) return;
@@ -76,7 +77,7 @@ export default function EventPanel({ evento, ahora }: Props) {
     return () => {
       vigente = false;
     };
-  }, [id, reintento]);
+  }, [id, reintento, estimandoAhora]);
 
   if (!evento) {
     return (
@@ -97,6 +98,7 @@ export default function EventPanel({ evento, ahora }: Props) {
   );
   const indice = impactos.reduce((m, i) => Math.max(m, indiceDestruccion(i.nivel_destruccion)), 0);
   const t = instante(evento.fecha_utc);
+  const estimando = estimandoAhora && impactos.length === 0;
 
   return (
     <>
@@ -133,14 +135,24 @@ export default function EventPanel({ evento, ahora }: Props) {
         </div>
       </div>
 
-      {estado.tipo === 'cargando' && (
+      {estimando && (
+        <div className="estimando" role="status" aria-live="polite">
+          <i className="rueda" aria-hidden="true" />
+          <div>
+            Estimando el impacto…
+            <small>Con IA puede tardar unos segundos; este panel se completa solo.</small>
+          </div>
+        </div>
+      )}
+
+      {!estimando && estado.tipo === 'cargando' && (
         <div className="sec" aria-busy="true" aria-label="Cargando el impacto estimado">
           <div className="esqueleto" style={{ height: 70 }} />
           <div className="esqueleto" style={{ height: 14, marginTop: 14, width: '60%' }} />
         </div>
       )}
 
-      {estado.tipo === 'error' && (
+      {!estimando && estado.tipo === 'error' && (
         <div className="sec">
           <div className="error-banner" role="alert">
             No se pudo cargar el impacto de este sismo.
@@ -149,7 +161,7 @@ export default function EventPanel({ evento, ahora }: Props) {
         </div>
       )}
 
-      {estado.tipo === 'listo' && impactos.length === 0 && (
+      {!estimando && estado.tipo === 'listo' && impactos.length === 0 && (
         <div className="aviso">Este sismo todavía no tiene una estimación de impacto.</div>
       )}
 

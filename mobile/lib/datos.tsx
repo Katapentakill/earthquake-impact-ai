@@ -94,6 +94,15 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(t);
   }, []);
 
+  // Mientras algún sismo espera su estimación (la IA puede tardar) se vuelve a mirar cada pocos segundos:
+  // el aviso por WebSocket es lo normal, esto cubre que se pierda.
+  const hayEstimando = eventos.some((e) => e.estimando);
+  useEffect(() => {
+    if (!hayEstimando) return;
+    const t = setInterval(cargar, 5000);
+    return () => clearInterval(t);
+  }, [hayEstimando, cargar]);
+
   // El WebSocket se abre una sola vez; usa siempre la versión más reciente de `cargar`.
   const cargarActual = useRef(cargar);
   useEffect(() => {

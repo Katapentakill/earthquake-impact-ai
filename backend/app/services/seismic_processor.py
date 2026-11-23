@@ -1,9 +1,10 @@
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.seismic_event import EventoSismico, ImpactoPais
+from app.services import estimando
 from app.services.radius_calculator import RadiusCalculator
 from app.services.usgs_service import USGSService
 from app.inference.huggingface_client import HuggingFaceInferenceClient
@@ -22,28 +23,35 @@ class SeismicProcessor:
         self.radius_calculator = RadiusCalculator()
         self.ai_client = HuggingFaceInferenceClient()
 
-    async def process_new_earthquakes(self, db: AsyncSession) -> List[str]:
+    async def process_new_earthquakes(
+        self,
+        db: AsyncSession,
+        notificar: Optional[Callable[[str], Awaitable[None]]] = None,
+    ) -> List[str]:
         """
-        Fetch and process new earthquakes from USGS
+        Consulta al USGS y procesa los sismos nuevos.
+
+        `notificar(event_id)` se llama dos veces por sismo: cuando queda guardado (todavía sin estimación, así que las
+        interfaces lo muestran con una rueda de carga) y cuando la estimación está lista.
 
         Returns:
-            List of processed event IDs
+            Lista de IDs de los sismos procesados
         """
-        # Fetch recent earthquakes
         earthquakes = await self.usgs_service.fetch_recent_earthquakes()
 
         processed_ids = []
 
         for eq_data in earthquakes:
             try:
-                # Check if event already exists
                 existing = await self._get_event_by_id(db, eq_data["event_id"])
-                if existing:
+                if existing and await self._tiene_impactos(db, eq_data["event_id"]):
                     logger.info(f"Event {eq_data['event_id']} already processed, skipping")
                     continue
+                if existing:
+                    # Quedó guardado sin estimación (por ejemplo, el servidor se reinició a la mitad): se completa.
+                    logger.info(f"Event {eq_data['event_id']} was saved without an estimate: completing it")
 
-                # Process the earthquake
-                event_id = await self.process_single_earthquake(db, eq_data)
+                event_id = await self.process_single_earthquake(db, eq_data, notificar, existing)
                 if event_id:
                     processed_ids.append(event_id)
 
@@ -56,21 +64,21 @@ class SeismicProcessor:
     async def process_single_earthquake(
         self,
         db: AsyncSession,
-        eq_data: Dict[str, Any]
+        eq_data: Dict[str, Any],
+        notificar: Optional[Callable[[str], Awaitable[None]]] = None,
+        existente: Optional[EventoSismico] = None,
     ) -> Optional[str]:
         """
-        Process a single earthquake event through the complete pipeline
-
-        Pipeline:
-        1. Calculate impact radius
-        2. Use AI to infer affected countries and impact
-        3. Save to database
+        Procesa un sismo por todo el camino:
+        1. Calcula el radio afectado
+        2. Guarda el sismo (ya se puede ver, con la marca «estimando»)
+        3. Le pide la estimación a la IA (o a las reglas) y guarda los impactos
 
         Returns:
-            Event ID if successful, None otherwise
+            El ID del sismo si salió bien, None si no
         """
+        event_id = eq_data["event_id"]
         try:
-            # Step 1: Calculate radius
             radio_km = self.radius_calculator.calculate_radius(
                 eq_data["magnitud"],
                 eq_data["profundidad"]
@@ -79,17 +87,19 @@ class SeismicProcessor:
             eq_data["radio_afectacion_km"] = radio_km
 
             logger.info(
-                f"Processing earthquake {eq_data['event_id']}: "
+                f"Processing earthquake {event_id}: "
                 f"Mag {eq_data['magnitud']}, Depth {eq_data['profundidad']}km, "
                 f"Radius {radio_km}km"
             )
 
-            # Step 2: Create event record
-            evento = EventoSismico(**eq_data)
-            db.add(evento)
-            await db.flush()  # Get the ID without committing
+            # Primero se marca y se guarda: la IA puede tardar, y mientras tanto las interfaces
+            # ven el sismo con su rueda de carga en lugar de no ver nada.
+            estimando.marcar(event_id)
+            if existente is None:
+                db.add(EventoSismico(**eq_data))
+                await db.commit()
+            await self._avisar(notificar, event_id)
 
-            # Step 3: Use AI to infer impact
             impacts = await self.ai_client.infer_impact(
                 latitud=eq_data["latitud"],
                 longitud=eq_data["longitud"],
@@ -99,10 +109,9 @@ class SeismicProcessor:
                 lugar=eq_data.get("lugar", ""),
             )
 
-            # Step 4: Save impact assessments
             for impact_data in impacts:
                 impacto = ImpactoPais(
-                    event_id=eq_data["event_id"],
+                    event_id=event_id,
                     pais=impact_data["pais"],
                     ciudades_afectadas=impact_data.get("ciudades_afectadas", []),
                     muertes_estimadas=impact_data.get("muertes_estimadas", 0),
@@ -110,27 +119,47 @@ class SeismicProcessor:
                     perdidas_monetarias_usd=impact_data.get("perdidas_monetarias_usd", 0),
                     nivel_destruccion=impact_data.get("nivel_destruccion", "Bajo"),
                     fuentes_inferidas=impact_data.get("fuentes_inferidas", []),
-                    razonamiento_ia=impact_data.get("razonamiento"),  # NEW: AI reasoning
-                    factores_considerados=impact_data.get("factores_considerados"),  # NEW: Factors considered
-                    codigo_construccion=impact_data.get("codigo_construccion"),  # NEW: Building code
+                    razonamiento_ia=impact_data.get("razonamiento"),
+                    factores_considerados=impact_data.get("factores_considerados"),
+                    codigo_construccion=impact_data.get("codigo_construccion"),
                     nivel_preparacion_sismica=impact_data.get("nivel_preparacion_sismica", "Media"),
                     densidad_poblacional=impact_data.get("densidad_poblacional", "Media"),
                 )
                 db.add(impacto)
 
             await db.commit()
+            estimando.liberar(event_id)
+            await self._avisar(notificar, event_id)
 
             logger.info(
-                f"Successfully processed earthquake {eq_data['event_id']} "
+                f"Successfully processed earthquake {event_id} "
                 f"with {len(impacts)} impact assessments"
             )
 
-            return eq_data["event_id"]
+            return event_id
 
         except Exception as e:
+            # El sismo (si llegó a guardarse) queda sin estimación y se completa en la consulta siguiente.
             await db.rollback()
             logger.error(f"Error in process_single_earthquake: {e}")
             return None
+        finally:
+            estimando.liberar(event_id)
+
+    async def _avisar(self, notificar: Optional[Callable[[str], Awaitable[None]]], event_id: str) -> None:
+        """Avisa a quien escucha (el WebSocket); un fallo al avisar no debe frenar el procesamiento."""
+        if notificar is None:
+            return
+        try:
+            await notificar(event_id)
+        except Exception as e:
+            logger.warning(f"No se pudo avisar del sismo {event_id}: {e}")
+
+    async def _tiene_impactos(self, db: AsyncSession, event_id: str) -> bool:
+        result = await db.execute(
+            select(ImpactoPais.event_id).where(ImpactoPais.event_id == event_id).limit(1)
+        )
+        return result.first() is not None
 
     async def _get_event_by_id(self, db: AsyncSession, event_id: str) -> Optional[EventoSismico]:
         """Get event by ID from database"""
@@ -169,6 +198,7 @@ class SeismicProcessor:
                 "lugar": event.lugar,
                 "radio_afectacion_km": float(event.radio_afectacion_km) if event.radio_afectacion_km else None,
                 "fuente_api": event.fuente_api,
+                "estimando": estimando.esta_estimando(event.event_id),
             },
             "impacts": [
                 {
@@ -177,7 +207,8 @@ class SeismicProcessor:
                     "muertes_estimadas": impact.muertes_estimadas,
                     "heridos_estimados": impact.heridos_estimados,
                     "perdidas_monetarias_usd": impact.perdidas_monetarias_usd,
-                    "nivel_destruccion": impact.nivel_destruccion.value,
+                    # Recién guardado, el nivel puede seguir en memoria como texto y no como la enumeración.
+                    "nivel_destruccion": getattr(impact.nivel_destruccion, "value", impact.nivel_destruccion),
                     "fuentes_inferidas": impact.fuentes_inferidas,
                     "razonamiento_ia": impact.razonamiento_ia,  # NEW: AI reasoning
                     "factores_considerados": impact.factores_considerados,  # NEW: Factors considered

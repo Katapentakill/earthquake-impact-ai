@@ -20,7 +20,7 @@ The old client showed «Profundidad: km» with nothing in it (it read `profundid
 - **Resumen**: four cards (quakes, largest, mean magnitude, magnitude 5 or more), period / magnitude / depth chips, search, and the list of quakes. Pull to refresh.
 - **Mapa**: the quakes coloured by the magnitude scale; tap one for a sheet with its summary and a link to its detail.
 - **Alertas**: quakes at or above a magnitude threshold (6.0 by default) over the last 30 days. If one arrives while the app is open, it shows at the top with a «NUEVO» tag.
-- **Detalle**: facts, estimated deaths, injured and losses, destruction level, and whether the estimate came from rules or from the AI.
+- **Detalle**: facts, estimated deaths, injured and losses, destruction level, and whether the estimate came from rules or from the AI. While the AI is still estimating a quake, the list row and the detail show a loading wheel («Estimando el impacto…») and fill in by themselves.
 - **Ajustes**: theme (follow the phone, cream, dark), the alert threshold, connection status and the addresses in use.
 
 ## Run it

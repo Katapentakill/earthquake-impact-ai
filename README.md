@@ -34,7 +34,7 @@ The original interface had blue and purple gradients on a white background, was 
 | Accessibility: text contrast of at least 4.5:1 measured by script in both themes, full keyboard use | [`tools/capturas/verificar_ui.js`](tools/capturas/verificar_ui.js) |
 | A phone client in Expo (React Native): four tabs and a detail screen, the same themes, live alerts over the WebSocket, and the API address worked out by a tested function instead of written in the code | [`mobile/`](mobile) |
 | Docker Compose with a health-checked database | [`docker-compose.yml`](docker-compose.yml) |
-| Tests: 36 in Python (`pytest`), 20 in the web interface and 30 in the phone client (`node:test`; 20 of those re-run the web's logic tests against the phone's copy), type checks and production builds | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
+| Tests: 39 in Python (`pytest`), 20 in the web interface and 30 in the phone client (`node:test`; 20 of those re-run the web's logic tests against the phone's copy), type checks and production builds | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
 
 ## Screens
 
@@ -98,8 +98,10 @@ flowchart LR
 1. **Ingestion.** A background task asks the USGS for new events of magnitude 4.5 or more.
 2. **Radius.** The affected radius grows with magnitude and shrinks with depth (bounded between 10 and 5,000 km).
 3. **Estimate.** With a model, it answers in JSON with a country breakdown and its reasoning. Without one, `estimacion_respaldo` scales casualties and losses by depth class (superficial, intermediate, deep) and lowers the destruction level for non-superficial quakes.
-4. **Storage.** Events and per-country impacts go to MariaDB; `GET /api/events/` also returns each event's highest level, totals and whether the estimate came from rules or the AI.
-5. **Live.** New events are announced over the WebSocket and the page reloads its list; it also reloads every 3 minutes.
+4. **Storage.** The event is saved *before* its estimate is requested, so the interfaces show it right away with a loading wheel («Estimando el impacto…») while the AI works, which can take several seconds. Impacts per country go to MariaDB when the estimate is ready; `GET /api/events/` returns each event's highest level, totals, whether the estimate came from rules or the AI, and `estimando` while it is pending.
+5. **Live.** Each new event is announced over the WebSocket twice, when it is saved and when its estimate is ready, and the page reloads its list; while something is pending it looks again every few seconds, and it reloads every 3 minutes anyway.
+
+![The panel while the AI estimates](docs/img/estimando-web.png)
 
 | Endpoint | What it returns |
 |---|---|
@@ -119,7 +121,7 @@ npm run typecheck       # TypeScript
 npm run build           # production build
 cd ..\backend
 pip install -r requirements-dev.txt
-python -m pytest        # 36 tests: the estimate, the impact summary and the reading of the AI answer
+python -m pytest        # 39 tests: the estimate, the impact summary, the reading of the AI answer and the registry of quakes being estimated
 cd ..\mobile
 npm install
 npm test                # 30 tests of the phone client (shared logic, address resolver, settings)

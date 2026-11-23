@@ -264,9 +264,9 @@ class SeismicProcessor:
         2. Filtrar nuevos (no en BD)
         3. Para cada evento:
            a. Calcular radio
-           b. Solicitar análisis IA
-           c. Guardar en BD
-           d. Notificar WebSocket
+           b. Guardar el evento y avisar por WebSocket (todavía sin estimación: `estimando: true`)
+           c. Solicitar análisis IA (o reglas)
+           d. Guardar los impactos y avisar por WebSocket de nuevo
 
         Returns:
             Lista de event_ids procesados
@@ -284,16 +284,16 @@ class SeismicProcessor:
    ├─> Radius Calculator
    │   └─> radio_km = f(magnitud, profundidad)
    │
-   ├─> Guardar EventoSismico en BD
+   ├─> Guardar EventoSismico en BD            (ya se ve en las interfaces, con la rueda de carga)
+   │   └─> WebSocket: {"type": "new_earthquake", "data": {"event": {..., "estimando": true}, "impacts": []}}
    │
-   ├─> Hugging Face Client
+   ├─> Hugging Face Client (puede tardar varios segundos)
    │   └─> Análisis de impacto por país
    │       └─> [{pais, estimaciones, razonamiento, ...}, ...]
    │
    ├─> Guardar ImpactoPais[] en BD
    │
-   └─> WebSocket Broadcast
-       └─> {"type": "new_earthquake", "data": {...}}
+   └─> WebSocket: {"type": "new_earthquake", "data": {"event": {..., "estimando": false}, "impacts": [...]}}
 
 3. Return processed IDs
 ```
@@ -647,10 +647,10 @@ MARIADB_PASSWORD=<la de tu .env>
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest        # 36 pruebas de funciones puras: no necesitan Docker ni base de datos
+python -m pytest        # 39 pruebas de funciones puras: no necesitan Docker ni base de datos
 ```
 
-Cubren la estimación por reglas (`respaldo.py`), el resumen de impactos (`resumen.py`) y la lectura de la respuesta de la IA (`respuesta_ia.py`).
+Cubren la estimación por reglas (`respaldo.py`), el resumen de impactos (`resumen.py`) la lectura de la respuesta de la IA (`respuesta_ia.py`) y el registro de sismos en estimación (`estimando.py`).
 
 ### Pruebas Manuales con curl
 

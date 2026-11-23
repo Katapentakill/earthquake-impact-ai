@@ -56,7 +56,8 @@ async def polling_task():
 
             async with AsyncSessionLocal() as db:
                 start_time = datetime.now()
-                processed_ids = await processor.process_new_earthquakes(db)
+                # El procesador avisa por WebSocket dos veces por sismo: al guardarlo (estimándose) y al terminar.
+                processed_ids = await processor.process_new_earthquakes(db, notificar=websocket.crear_notificador(processor, db))
                 elapsed_time = (datetime.now() - start_time).total_seconds()
 
                 if processed_ids:
@@ -66,13 +67,9 @@ async def polling_task():
                     for idx, event_id in enumerate(processed_ids, 1):
                         event_data = await processor.get_event_with_impacts(db, event_id)
                         if event_data:
-                            mag = event_data.get('magnitud', 'N/A')
-                            lugar = event_data.get('lugar', 'Unknown location')
+                            mag = event_data['event'].get('magnitud', 'N/A')
+                            lugar = event_data['event'].get('lugar', 'Unknown location')
                             logger.info(f"      [{idx}] Event: {event_id} | Magnitude: {mag} | Location: {lugar}")
-
-                            # Notify WebSocket clients
-                            await websocket.notify_new_earthquake(event_data)
-                            logger.info(f"      [{idx}] WebSocket notification sent")
                 else:
                     logger.info(f"   ℹ️  No new earthquakes found in {elapsed_time:.2f}s")
 

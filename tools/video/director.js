@@ -1,10 +1,11 @@
-// Director de la toma de la app. Lo inyecta tools/video/grabar.js dentro de la página (executeJavaScript) y lo lanza
-// con window.__D.run2().
+// Director de la toma de la web. Lo inyecta tools/video/grabar.js dentro de la página (executeJavaScript) y lo lanza
+// con window.__D.run2(). El video explica CÓMO FUNCIONA la app (el flujo de los datos, la estimación por IA o por reglas,
+// y lo que ofrece la interfaz); no compara con la versión anterior.
 // - Todo ocurre dentro de la página con clics del DOM: no hay ratón real ni ventanas ajenas en la toma.
 // - Dibuja su propio cursor y el anillo de cada clic.
 // - Guarda en __D.log la hora exacta (Date.now()) de cada clic, tecla y escena, y los datos que muestra la pantalla
-//   (cuántos sismos hay, el mayor, etc.); el montaje (componer.mjs) los usa para sincronizar y escribir los subtítulos.
-//   Date.now() es el mismo reloj que usa el grabador, así que no hace falta detectar escenas en el video.
+//   (cuántos sismos hay, el mayor, qué sismo estimó la IA y cuál las reglas); el montaje (componer.mjs) los usa para
+//   sincronizar y escribir los subtítulos. Date.now() es el mismo reloj que usa el grabador.
 // - Usa setTimeout y no requestAnimationFrame: rAF se detiene si la ventana queda tapada y el guion se congelaría.
 (() => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -25,23 +26,18 @@
     .__card p{font-size:20px;color:#b7ae98;margin:0}
     .__marcaapp{width:78px;height:78px;border-radius:22px;background:#f0a15e;display:inline-grid;place-items:center}
     .__marcaapp svg{width:46px;height:46px;fill:none;stroke:#1a1510;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-    .__antes{background:#e7dfcb;color:#2a2418}
-    .__antes .__marco{display:grid;gap:14px;justify-items:center}
-    .__antes .__marco img{border-radius:14px;box-shadow:0 12px 40px rgba(60,45,15,.3);border:1px solid #b9ad8f}
-    .__etiqueta{display:inline-block;background:#a63f14;color:#fffaf0;border-radius:999px;padding:6px 18px;font-weight:700;font-size:18px;letter-spacing:.06em}
-    .__como{gap:26px;align-content:center;padding:0 80px}
-    .__flujo{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:nowrap}
-    .__caja{background:#1c1915;border:1px solid #4d463b;border-radius:16px;padding:16px 14px;width:222px;text-align:center}
-    .__caja b{display:block;font-size:20px;color:#eee7d6}
-    .__caja span{font-size:14px;color:#b7ae98}
-    .__flecha{font-size:30px;color:#f0a15e}
-    .__datos{display:flex;gap:18px;justify-content:center;margin-top:8px}
-    .__dato{background:#2f2a23;border-radius:14px;padding:14px 22px;text-align:center}
-    .__dato b{display:block;font-size:32px;color:#f0a15e}
-    .__dato span{font-size:15px;color:#cfc6b1}
-    .__moviles{display:flex;gap:44px;justify-content:center;align-items:flex-start}
-    .__moviles div{width:290px;height:560px;border-radius:30px;border:9px solid #0b0a08;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.55);background:#000}
-    .__moviles img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+    .__flujo{display:grid;grid-template-columns:repeat(3,300px);gap:20px 56px;justify-content:center;margin-top:30px;position:relative}
+    .__caja{background:#1c1915;border:2px solid #38332b;border-radius:18px;padding:18px 16px;text-align:center;opacity:.28;transition:opacity .7s,border-color .7s,box-shadow .7s;position:relative}
+    .__caja.__on{opacity:1;border-color:#f0a15e;box-shadow:0 0 0 4px rgba(240,161,94,.14)}
+    .__caja b{display:block;font-size:22px;color:#eee7d6;margin-bottom:4px}
+    .__caja span{display:block;font-size:15px;color:#b7ae98;line-height:1.35}
+    .__caja i{display:inline-block;margin-top:6px;font-style:normal;font-size:13px;font-weight:700;border-radius:999px;padding:3px 12px}
+    .__caja i.__ia{background:rgba(240,161,94,.2);color:#f0a15e}
+    .__caja i.__re{background:#2f2a23;color:#cfc6b1}
+    .__caja:not(:nth-child(3n))::after{content:"→";position:absolute;right:-44px;top:50%;transform:translateY(-50%);font-size:30px;color:#f0a15e}
+    .__caja:nth-child(3)::after{display:none}
+    .__nota{margin-top:26px;font-size:17px;color:#b7ae98;text-align:center}
+    .__nota b{color:#f0a15e}
   `;
   document.head.appendChild(st);
 
@@ -72,6 +68,7 @@
     setTimeout(() => r.remove(), 800);
   };
   const clic = async (el, etiqueta, ms = 800) => {
+    if (!el) throw new Error(`No se encontró el elemento «${etiqueta}»`);
     const [x, y] = centro(el);
     await glide(x, y, ms);
     await sleep(160);
@@ -113,29 +110,27 @@
   const MARCA = '<div class="__marcaapp"><svg viewBox="0 0 24 24"><path d="M2.5 12.5h4l2.2-6.5 3.6 12 2.4-7 1.6 1.5h5.2"/></svg></div>';
 
   const cardPortada = () => tarjeta(`<div style="text-align:center">${MARCA}
-    <h1>Monitor sísmico global</h1><p>FastAPI · Next.js · MariaDB · USGS en tiempo real</p></div>`);
-  const cardAntes = (src, ancho, nota) => tarjeta(`<div class="__marco"><span class="__etiqueta">ANTES</span>
-    <img src="${src}" alt="" style="width:${ancho}px"><p style="color:#4d4535;font-size:20px">${nota}</p></div>`, '__antes');
-  const cardMoviles = (a, b) => tarjeta(`<div style="text-align:center"><h1 style="margin-top:0;margin-bottom:24px">También en el celular</h1>
-    <div class="__moviles"><div><img src="${a}" alt=""></div><div><img src="${b}" alt=""></div></div></div>`);
-  const cardComo = (cifras) => tarjeta(`<div style="text-align:center"><h1 style="margin-top:0">Cómo está hecho</h1>
-    <div class="__flujo" style="margin-top:26px">
-      <div class="__caja"><b>USGS</b><span>catálogo público de sismos</span></div><span class="__flecha">→</span>
-      <div class="__caja"><b>FastAPI</b><span>consulta cada 3 min · API y WebSocket</span></div><span class="__flecha">→</span>
-      <div class="__caja"><b>MariaDB</b><span>eventos e impactos</span></div><span class="__flecha">→</span>
-      <div class="__caja"><b>Next.js</b><span>mapa Leaflet, gráficos y tabla</span></div>
+    <h1>Monitor sísmico global</h1><p style="color:#f0a15e;font-weight:600;font-size:24px">Cómo funciona</p>
+    <p style="margin-top:14px">USGS · FastAPI · IA o reglas · MariaDB · Next.js · Expo</p></div>`);
+  // El flujo de los datos, en tres pasos que se iluminan de a uno.
+  const cardFlujo = (modelo) => tarjeta(`<div style="text-align:center"><h1 style="margin-top:0">El camino de cada sismo</h1>
+    <div class="__flujo">
+      <div class="__caja" data-paso="1"><b>1 · USGS</b><span>catálogo público: sismos de magnitud 4,5 o más</span></div>
+      <div class="__caja" data-paso="1"><b>2 · FastAPI</b><span>lo consulta cada 3 minutos y calcula el radio afectado</span></div>
+      <div class="__caja" data-paso="2"><b>3 · Estimación del impacto</b><span>muertes, heridos, pérdidas y nivel de destrucción</span>
+        <i class="__ia">IA · ${modelo}</i> <i class="__re">o reglas por profundidad</i></div>
+      <div class="__caja" data-paso="3"><b>4 · MariaDB</b><span>guarda cada evento y su impacto por país</span></div>
+      <div class="__caja" data-paso="3"><b>5 · API y WebSocket</b><span>entrega la lista y avisa de cada sismo nuevo</span></div>
+      <div class="__caja" data-paso="3"><b>6 · Web y celular</b><span>Next.js con mapa Leaflet · Expo (React Native)</span></div>
     </div>
-    <div class="__datos">
-      <div class="__dato"><b>${cifras.js}</b><span>pruebas de JavaScript</span></div>
-      <div class="__dato"><b>${cifras.py}</b><span>pruebas de Python</span></div>
-      <div class="__dato"><b>4,5 : 1</b><span>contraste mínimo medido</span></div>
-      <div class="__dato"><b>2</b><span>temas de color</span></div>
-    </div></div>`, '__como');
-  const cardCierre = () => tarjeta(`<div style="text-align:center">${MARCA}
-    <h1>Alexander Tapia</h1>
-    <p>Rediseño de la interfaz, estimación por profundidad, pruebas y documentación</p>
-    <p style="margin-top:16px;font-size:18px">Datos: USGS Earthquake Catalog · Mapa © OpenStreetMap</p>
-    <p style="margin-top:22px;color:#f0a15e">github.com/Katapentakill/earthquake-impact-ai</p></div>`);
+    <div class="__nota" id="__nota">&nbsp;</div></div>`);
+  const paso = (c, n, nota) => {
+    c.querySelectorAll('.__caja').forEach((b) => b.classList.toggle('__on', Number(b.dataset.paso) === n));
+    const el = c.querySelector('#__nota');
+    if (el) el.innerHTML = nota;
+  };
+  const cardCelular = () => tarjeta(`<div style="text-align:center">${MARCA}
+    <h1>Y la misma información, en el celular</h1><p>Cliente Expo (React Native) con el mismo backend</p></div>`);
 
   // ---------- gestos y lectura de la pantalla ----------
   const boton = (texto, ambito = 'button') => $$(ambito).find((b) => b.textContent.trim().startsWith(texto));
@@ -152,16 +147,20 @@
     }
   };
   const vaciar = (input) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ''); input.dispatchEvent(new Event('input', { bubbles: true })); };
-  const filas = () => $$('tbody tr[tabindex]').map((tr) => ({
-    tr,
-    mag: parseFloat(tr.querySelector('.mag').textContent.replace(',', '.')),
-    lugar: tr.querySelector('.lugar b').textContent,
-    prof: parseInt(tr.children[3].textContent, 10),
-    clase: tr.children[3].querySelector('.sub')?.textContent.trim(),
-    elegida: tr.getAttribute('aria-selected') === 'true',
-  }));
-  const marcador = (lugar) => $$('path.mk').find((p) => (p.getAttribute('aria-label') || '').includes(lugar));
   const entero = (s) => parseInt(String(s).replace(/\D/g, ''), 10);
+  const coma = (m) => m.toFixed(1).replace('.', ',');
+  const esperarQue = async (cond, ms = 15000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (cond()) return true; await sleep(250); } return false; };
+  // El marcador de un sismo en el mapa (varios pueden llamarse igual: se busca por magnitud y lugar).
+  const marcador = (e) => $$('path.mk').find((p) => (p.getAttribute('aria-label') || '').startsWith(`Magnitud ${coma(e.magnitud)}, ${e.lugar}`));
+  const textoPanel = () => ($('.panel-lado') || document.body).innerText;
+  // Eventos del período con su origen de estimación (ia o reglas), pedidos a la misma API que usa la página.
+  const eventosApi = async () => {
+    const url = performance.getEntriesByType('resource').map((r) => r.name).find((n) => /\/api\/events\/\?/.test(n));
+    if (!url) throw new Error('No se encontró la dirección de la API en las peticiones de la página');
+    const desde = new Date(Date.now() - 24 * 3600e3).toISOString().slice(0, 19);
+    const r = await fetch(`${new URL(url).origin}/api/events/?limit=500&start_date=${desde}`);
+    return (await r.json()).events;
+  };
 
   window.__D = { sleep, log, glide, clic, setCur, anillo };
 
@@ -169,57 +168,77 @@
     const D = window.__D;
     const S = sleep;
     log.length = 0; D.done = false; D.err = null;
-    const cifras = opciones.cifras || { js: '20', py: '19' };
-    const imgs = opciones.imgs;
+    const cifras = opciones.cifras || { py: '36', web: '20', movil: '30' };
+    const modelo = opciones.modelo || 'Llama 3.3 70B';
     const Y_MAPA = 150; // con el mapa, el panel y la barra de filtros a la vista
 
-    // Lo que muestra la pantalla al empezar: el resumen del día y dos sismos para contar la historia.
-    const f = filas();
-    const mayor = f.find((x) => x.elegida) || f.reduce((a, b) => (b.mag > a.mag ? b : a));
-    const superficiales = f.filter((x) => x.clase === 'Superficial' && x !== mayor).sort((a, b) => b.mag - a.mag);
-    const otro = superficiales[0] || f.filter((x) => x !== mayor).sort((a, b) => b.mag - a.mag)[0];
-    const termino = (otro.lugar.includes(',') ? otro.lugar.split(',').pop() : otro.lugar.split(' ').pop()).trim();
+    // Lo que muestra la pantalla al empezar: el resumen del día, un sismo estimado por la IA y otro por las reglas.
+    const lista = await eventosApi();
+    const porMag = (a, b) => b.magnitud - a.magnitud;
+    const ia = lista.filter((e) => e.estimacion === 'ia').sort(porMag)[0];
+    if (!ia) throw new Error('Ningún sismo del período tiene estimación de la IA: ¿el backend tiene token y modelo?');
+    const reglas = lista.filter((e) => e.estimacion === 'reglas' && e.profundidad < 70).sort(porMag)[0]
+      || lista.filter((e) => e.estimacion === 'reglas').sort(porMag)[0];
+    if (!reglas) throw new Error('Ningún sismo del período tiene estimación por reglas');
+    const termino = (reglas.lugar.includes(',') ? reglas.lugar.split(',').pop() : reglas.lugar.split(' ').pop()).trim();
     info({
-      mayorClase: mayor.clase, otroClase: otro.clase,
       total: entero($$('.kpi .v')[0].firstChild.textContent),
-      mayorMag: mayor.mag, mayorLugar: mayor.lugar, mayorProf: mayor.prof,
-      otroMag: otro.mag, otroLugar: otro.lugar, otroProf: otro.prof, termino,
-      deCinco: entero($$('.kpi .v')[3].firstChild.textContent),
+      mayorMag: Math.max(...lista.map((e) => e.magnitud)),
+      iaMag: ia.magnitud, iaLugar: ia.lugar, iaProf: Math.round(ia.profundidad), iaMuertes: ia.muertes_estimadas, iaHeridos: ia.heridos_estimados, iaNivel: ia.nivel_destruccion,
+      reglasMag: reglas.magnitud, reglasLugar: reglas.lugar, reglasProf: Math.round(reglas.profundidad), reglasMuertes: reglas.muertes_estimadas, reglasHeridos: reglas.heridos_estimados,
+      termino,
     });
+    const mayor = lista.reduce((a, b) => (b.magnitud > a.magnitud ? b : a));
+    info({ mayorLugar: mayor.lugar, mayorProf: Math.round(mayor.profundidad), mayorEs: mayor.estimacion });
 
-    // --- portada y «antes» ---
+    // --- portada y el camino de los datos ---
     marca('portada');
-    const c1 = cardPortada(); await mostrar(c1); await S(4600);
-    marca('antes-1');
-    const c2 = cardAntes(imgs.antes1, 900, 'La interfaz original: degradados azul y morado, todo en inglés'); await mostrar(c2); await ocultar(c1); await S(5400);
-    marca('antes-2');
-    const c3 = cardAntes(imgs.antes2, 250, 'En el celular, los filtros ocupaban la primera pantalla'); await mostrar(c3); await ocultar(c2); await S(5600);
+    const c1 = cardPortada(); await mostrar(c1); await S(4800);
+    marca('flujo-1');
+    const c2 = cardFlujo(modelo); await mostrar(c2); await ocultar(c1);
+    paso(c2, 1, 'Cada 3 minutos, el backend <b>pide al USGS</b> los sismos nuevos.'); await S(7600);
+    marca('flujo-2');
+    paso(c2, 2, 'Con un token de Hugging Face, <b>una IA</b> estima el impacto; sin él, o si falla, <b>unas reglas</b>.'); await S(8600);
+    marca('flujo-3');
+    paso(c2, 3, 'Todo se guarda y <b>se avisa en vivo</b> a la web y al celular.'); await S(7600);
+    marca('resumen');
+    await ocultar(c2);
 
     // --- resumen del día ---
-    marca('resumen-1');
-    await ocultar(c3);
     await pasear([[0.2, 0.2], [0.42, 0.2], [0.64, 0.2], [0.84, 0.2]], 900, 650);
-    await S(1600);
+    await S(1200);
 
-    // --- mapa y panel ---
-    marca('mapa-1');
+    // --- mapa ---
+    marca('mapa');
     await desplazar(Y_MAPA, 1100);
-    await pasear([[0.2, 0.55], [0.42, 0.5], [0.3, 0.7]], 1100, 900);
-    await S(900);
-    marca('panel-1');
-    await glide(innerWidth * 0.8, innerHeight * 0.62, 1200); await S(6400);
-    marca('mapa-2');
-    const mk = marcador(otro.lugar);
-    if (!mk) throw new Error(`No se encontró el marcador de «${otro.lugar}» en el mapa`);
-    await D.clic(mk, 'marcador', 1300);
-    await S(6200);
+    await pasear([[0.2, 0.55], [0.42, 0.5], [0.3, 0.7]], 1100, 800);
+    await S(500);
 
-    // --- filtros ---
-    marca('filtros-1');
+    // --- un sismo estimado por la IA ---
+    marca('panel-ia');
+    const mkIa = marcador(ia);
+    if (!mkIa) throw new Error(`No se encontró el marcador de M ${coma(ia.magnitud)} «${ia.lugar}» en el mapa`);
+    await D.clic(mkIa, 'sismo estimado por la IA', 1300);
+    if (!(await esperarQue(() => /Análisis con IA/.test(textoPanel()) && textoPanel().includes(ia.lugar), 20000))) throw new Error('El panel no mostró «Análisis con IA» para el sismo elegido');
+    await S(2200);
+    marca('panel-ia-2');
+    await verEn($('.panel-lado .detalle') || $('.panel-lado'), 150); await S(7600);
+    await desplazar(Y_MAPA, 900); await S(300);
+
+    // --- un sismo estimado por reglas ---
+    marca('panel-reglas');
+    const mkRe = marcador(reglas);
+    if (!mkRe) throw new Error(`No se encontró el marcador de M ${coma(reglas.magnitud)} «${reglas.lugar}» en el mapa`);
+    await D.clic(mkRe, 'sismo estimado por reglas', 1300);
+    if (!(await esperarQue(() => /Cálculo por reglas/.test(textoPanel()) && textoPanel().includes(reglas.lugar), 20000))) throw new Error('El panel no mostró «Cálculo por reglas» para el sismo elegido');
+    await S(7400);
+
+    // --- filtros y búsqueda ---
+    marca('filtros');
     await D.clic(boton('5,0 o más', '.chip'), 'magnitud 5', 1000); await S(2400);
     await D.clic(boton('Superficial', '.chip'), 'profundidad superficial', 900); await S(2600);
     await D.clic(boton('Restablecer'), 'restablecer', 900); await S(1400);
-    marca('filtros-2');
+    marca('busqueda');
     await D.clic($('#q'), 'buscar', 900); await S(300);
     await escribir($('#q'), termino, 190); await S(2800);
     vaciar($('#q')); await S(700);
@@ -238,29 +257,28 @@
     await verEn($('#h-tabla'), 100);
     await S(1200);
     await D.clic(boton('Magnitud', 'thead th button'), 'ordenar por magnitud', 1000); await S(2000);
-    marca('tabla-2');
-    const segunda = filas().filter((x) => x.lugar !== mayor.lugar).sort((a, b) => b.mag - a.mag)[0];
-    await D.clic(segunda.tr, 'fila', 1000); await S(500);
-    await desplazar(Y_MAPA, 1200); await S(4600);
+    const csv = boton('Exportar CSV');
+    if (csv) { const [x, y] = centro(csv); await glide(x, y, 900); await S(1800); }
 
     // --- tema oscuro ---
     marca('oscuro');
+    await desplazar(0, 1000); await S(500);
     await D.clic(boton('Oscuro', '.seg button'), 'tema oscuro', 1100); await S(1800);
     await pasear([[0.25, 0.5], [0.55, 0.6], [0.8, 0.5]], 1000, 900);
-    await verEn($('#h-tiempo'), 110); await S(2600);
-    await desplazar(0, 1000); await S(800);
-    await D.clic(boton('Crema', '.seg button'), 'tema crema', 900); await S(1200);
+    await verEn($('#h-tiempo'), 110); await S(2200);
+    await desplazar(0, 1000); await S(600);
+    await D.clic(boton('Crema', '.seg button'), 'tema crema', 900); await S(1000);
 
-    // --- celular ---
-    cur.style.display = 'none'; // sin cursor sobre las tarjetas finales
+    // --- en vivo ---
+    marca('envivo');
+    const vivo = $('.live');
+    if (vivo) { const [x, y] = centro(vivo); await glide(x, y, 1100); }
+    await S(6400);
+
+    // --- paso al celular ---
+    cur.style.display = 'none'; // sin cursor sobre las tarjetas
     marca('celular');
-    const c4 = cardMoviles(imgs.cel1, imgs.cel2); await mostrar(c4); await S(5200);
-
-    // --- cómo está hecho y cierre ---
-    marca('como');
-    const c5 = cardComo(cifras); await mostrar(c5); await ocultar(c4); await S(9800);
-    marca('cierre');
-    const c6 = cardCierre(); await mostrar(c6); await ocultar(c5); await S(7200);
+    const c4 = cardCelular(); await mostrar(c4); await S(3800);
     marca('fin');
     D.done = true;
   };

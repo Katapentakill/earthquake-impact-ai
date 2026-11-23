@@ -266,6 +266,12 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 6px 24px; justify-content: s
   .cifra.largo { grid-column: auto; }
   .prof-fila { grid-template-columns: 96px 1fr 70px; }
 }
+/* Rueda de carga: el sismo ya está guardado y su impacto todavía se está estimando (la IA puede tardar unos segundos). */
+.rueda { display: inline-block; flex: none; width: 1em; height: 1em; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: giro 0.8s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+.estimando { display: flex; align-items: center; gap: 14px; margin: 12px 20px 0; padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); border: 1px solid var(--accent); color: var(--text); font-weight: 650; }
+.estimando .rueda { width: 24px; height: 24px; border-width: 3px; }
+.estimando small { display: block; margin-top: 2px; font-weight: 400; font-size: 13px; color: var(--text-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

@@ -263,6 +263,12 @@ ping <tu-ip>  # Desde PC hacia teléfono (requiere apps adicionales)
 
 **Solución:** en `.env` pon `LAN_IP=` con la IP de tu PC (`ipconfig`) y `docker compose up -d --force-recreate mobile`. O corre Expo sin Docker: `cd mobile && npx expo start --lan`.
 
+### ❌ Cambié el frontend y la página sigue igual (Docker en Windows)
+
+**Causa:** el servidor de desarrollo del contenedor `frontend` no se entera de los cambios de archivos que se hacen desde Windows.
+
+**Solución:** `docker compose restart frontend` (o `up -d --build frontend` si cambiaste dependencias).
+
 ### ❌ Error: "MARIADB_USER not found"
 
 **Causa:** Variables de entorno mal configuradas.

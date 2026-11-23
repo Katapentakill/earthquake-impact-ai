@@ -34,7 +34,7 @@ La interfaz original tenía degradados azul y morado sobre fondo blanco, estaba 
 | Accesibilidad: contraste de texto de al menos 4,5:1 medido por script en los dos temas, uso completo con teclado | [`tools/capturas/verificar_ui.js`](tools/capturas/verificar_ui.js) |
 | Un cliente móvil en Expo (React Native): cuatro pestañas y una pantalla de detalle, los mismos temas, alertas en vivo por WebSocket y la dirección de la API calculada por una función probada en lugar de escrita en el código | [`mobile/`](mobile) |
 | Docker Compose con base de datos con chequeo de salud | [`docker-compose.yml`](docker-compose.yml) |
-| Pruebas: 36 en Python (`pytest`), 20 en la interfaz web y 30 en el cliente móvil (`node:test`; 20 de ellas vuelven a correr las pruebas de lógica de la web contra la copia del móvil), chequeo de tipos y compilaciones de producción | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
+| Pruebas: 39 en Python (`pytest`), 20 en la interfaz web y 30 en el cliente móvil (`node:test`; 20 de ellas vuelven a correr las pruebas de lógica de la web contra la copia del móvil), chequeo de tipos y compilaciones de producción | [`backend/tests/`](backend/tests), [`frontend/tests/`](frontend/tests), [`mobile/tests/`](mobile/tests) |
 
 ## Pantallas
 
@@ -98,8 +98,10 @@ flowchart LR
 1. **Ingesta.** Una tarea en segundo plano pide al USGS los eventos nuevos de magnitud 4,5 o más.
 2. **Radio.** El radio afectado crece con la magnitud y baja con la profundidad (acotado entre 10 y 5.000 km).
 3. **Estimación.** Con modelo, responde en JSON con el detalle por país y su razonamiento. Sin modelo, `estimacion_respaldo` escala muertes, heridos y pérdidas según la clase de profundidad (superficial, intermedia, profunda) y baja el nivel de destrucción si el sismo no es superficial.
-4. **Almacenamiento.** Los eventos y los impactos por país van a MariaDB; `GET /api/events/` devuelve además el nivel más alto de cada evento, las sumas y si la estimación salió de reglas o de la IA.
-5. **En vivo.** Los eventos nuevos se anuncian por WebSocket y la página recarga su lista; también la recarga cada 3 minutos.
+4. **Almacenamiento.** El evento se guarda *antes* de pedir su estimación, así que las interfaces lo muestran enseguida con una rueda de carga («Estimando el impacto…») mientras la IA trabaja, lo que puede tardar varios segundos. Los impactos por país van a MariaDB cuando la estimación está lista; `GET /api/events/` devuelve el nivel más alto de cada evento, las sumas, si la estimación salió de reglas o de la IA, y `estimando` mientras está pendiente.
+5. **En vivo.** Cada evento nuevo se anuncia dos veces por WebSocket, al guardarlo y cuando su estimación está lista, y la página recarga su lista; mientras algo está pendiente vuelve a mirar cada pocos segundos, y de todos modos la recarga cada 3 minutos.
+
+![El panel mientras la IA estima](docs/img/estimando-web.png)
 
 | Endpoint | Qué devuelve |
 |---|---|
@@ -119,7 +121,7 @@ npm run typecheck       # TypeScript
 npm run build           # compilación de producción
 cd ..\backend
 pip install -r requirements-dev.txt
-python -m pytest        # 36 pruebas: la estimación, el resumen de impactos y la lectura de la respuesta de la IA
+python -m pytest        # 39 pruebas: la estimación, el resumen de impactos, la lectura de la respuesta de la IA y el registro de sismos en estimación
 cd ..\mobile
 npm install
 npm test                # 30 pruebas del cliente móvil (lógica compartida, resolvedor de direcciones, ajustes)

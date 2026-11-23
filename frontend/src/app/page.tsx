@@ -71,6 +71,15 @@ export default function Home() {
     return () => ws.disconnect();
   }, [cargar]);
 
+  // Mientras algún sismo espera su estimación (la IA puede tardar), se vuelve a mirar cada pocos segundos: el aviso por
+  // WebSocket es lo normal, esto cubre que se pierda.
+  const hayEstimando = eventos.some((e) => e.estimando);
+  useEffect(() => {
+    if (!hayEstimando) return;
+    const id = setInterval(cargar, 4000);
+    return () => clearInterval(id);
+  }, [hayEstimando, cargar]);
+
   const visibles = useMemo(() => filtrarEventos(eventos, filtros), [eventos, filtros]);
   const resumen = useMemo(() => resumir(visibles, ahora, PERIODOS[periodo].horas), [visibles, ahora, periodo]);
   // Si el sismo elegido ya no cumple los filtros, el panel muestra el de mayor magnitud.

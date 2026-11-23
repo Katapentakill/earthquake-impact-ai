@@ -101,3 +101,15 @@ async def notify_new_earthquake(event_data: dict):
         "timestamp": asyncio.get_event_loop().time(),
     }
     await manager.broadcast(message)
+
+
+def crear_notificador(processor, db):
+    """Devuelve la función `notificar(event_id)` que usa el procesador: arma el aviso con el sismo y sus impactos
+    actuales (el sismo recién guardado todavía no tiene impactos y trae `estimando: true`) y lo envía a los clientes."""
+
+    async def notificar(event_id: str) -> None:
+        data = await processor.get_event_with_impacts(db, event_id)
+        if data:
+            await notify_new_earthquake(data)
+
+    return notificar

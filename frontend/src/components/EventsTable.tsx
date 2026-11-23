@@ -107,7 +107,11 @@ export default function EventsTable({ eventos, total, seleccionado, ahora, onEle
                   <td className="r num">{e.radio_afectacion_km ? fmtEntero(e.radio_afectacion_km) : '—'}</td>
                   <td>
                     {nivel === null ? (
-                      <span className="nivel-chip"><i className="dot neutro" aria-hidden="true" />Pendiente</span>
+                      e.estimando ? (
+                        <span className="nivel-chip" role="status"><i className="rueda" aria-hidden="true" />Estimando</span>
+                      ) : (
+                        <span className="nivel-chip"><i className="dot neutro" aria-hidden="true" />Pendiente</span>
+                      )
                     ) : (
                       <span className="nivel-chip"><i className={`dot l${nivel + 1}`} aria-hidden="true" />{ETIQUETA_DESTRUCCION[nivel]}</span>
                     )}

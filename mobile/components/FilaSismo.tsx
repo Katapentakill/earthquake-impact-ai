@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useEstilos, useTema } from '@/lib/ajustes';
 import type { Paleta } from '@/constants/paleta';
 import { RADIO } from '@/constants/paleta';
@@ -50,7 +50,12 @@ function FilaSismoBase({ evento: e, ahora, nuevo, elegida, onPress }: Props) {
         ) : null}
         <Text style={s.lugar} numberOfLines={2}>{e.lugar}</Text>
         <Text style={s.meta}>{hace} · {prof}</Text>
-        {idx !== null ? (
+        {e.estimando ? (
+          <View style={s.impacto} accessibilityRole="progressbar" accessibilityLabel="Estimando el impacto">
+            <ActivityIndicator size="small" color={p.accent} />
+            <Text style={s.impactoTexto}>Estimando el impacto…</Text>
+          </View>
+        ) : idx !== null ? (
           <View style={s.impacto}>
             <BarrasNivel indice={idx} />
             <Text style={s.impactoTexto}>Impacto {ETIQUETA_DESTRUCCION[idx].toLowerCase()}</Text>

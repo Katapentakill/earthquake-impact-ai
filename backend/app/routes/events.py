@@ -5,6 +5,8 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models.seismic_event import EventoSismico, ImpactoPais, NivelDestruccion
+from app.routes.websocket import crear_notificador
+from app.services.estimando import esta_estimando
 from app.services.resumen import resumen_impactos
 from app.services.seismic_processor import SeismicProcessor
 
@@ -78,6 +80,8 @@ async def get_events(
                 "lugar": event.lugar,
                 "radio_afectacion_km": float(event.radio_afectacion_km) if event.radio_afectacion_km else None,
                 "fuente_api": event.fuente_api,
+                # true mientras la IA (o las reglas) estiman el impacto: las interfaces muestran una rueda de carga
+                "estimando": esta_estimando(event.event_id),
                 **resumen_impactos(impactos_por_evento.get(event.event_id, [])),
             }
             for event in events
@@ -250,7 +254,7 @@ async def trigger_processing(
     Manually trigger processing of new earthquakes from USGS
     """
     processor = SeismicProcessor()
-    processed_ids = await processor.process_new_earthquakes(db)
+    processed_ids = await processor.process_new_earthquakes(db, notificar=crear_notificador(processor, db))
 
     return {
         "message": "Processing completed",

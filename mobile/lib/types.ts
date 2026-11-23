@@ -20,6 +20,8 @@ export interface SeismicEvent {
   heridos_estimados?: number | null;
   perdidas_monetarias_usd?: number | null;
   estimacion?: FuenteEstimacion | null;
+  /** true mientras la IA (o las reglas) estiman el impacto del sismo: se muestra una rueda de carga. */
+  estimando?: boolean;
 }
 
 export interface ImpactData {

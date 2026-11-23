@@ -12,7 +12,8 @@
     "video:movil": "npm run grabar:movil && npm run componer:movil",
     "revisar:movil": "node revisar.mjs es salida/movil && node revisar.mjs en salida/movil",
     "ui": "electron ../capturas/verificar_ui.js",
-    "movil": "electron ../capturas/verificar_movil.js"
+    "movil": "electron ../capturas/verificar_movil.js",
+    "estimando": "electron ../capturas/verificar_estimando.js"
   },
   "dependencies": {
     "electron": "^36.4.0",
