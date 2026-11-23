@@ -53,7 +53,7 @@ La interfaz original tenía degradados azul y morado sobre fondo blanco, estaba 
 
 Son la versión de la app en el navegador (`expo start --web`) con datos reales; el mapa nativo y el comportamiento táctil no se han comprobado en un teléfono. [Detalles y límites](mobile/README.md) (en inglés).
 
-El diseño se prototipó primero como una página HTML interactiva con los mismos eventos reales: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (descárgala y ábrela en un navegador). Un recorrido de 2,5 minutos (subtítulos en español, sin voz): [ver en YouTube](https://youtu.be/45RhoPXFj9A) ([English version](https://youtu.be/scIQnkal5zQ)). Las capturas son instantáneas de datos en vivo del 23 de noviembre de 2026.
+El diseño se prototipó primero como una página HTML interactiva con los mismos eventos reales: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (descárgala y ábrela en un navegador). Un video de 4,5 minutos que explica cómo funciona, desde el catálogo del USGS hasta las interfaces web y móvil, con la rueda de carga mientras la IA estima un sismo (subtítulos en español, sin voz; el tramo del celular es la versión web de la app a tamaño de teléfono): [ver en YouTube](https://youtu.be/1XgrETnC1eA) ([English version](https://youtu.be/SQEuXKzsK_Q)). Las capturas son instantáneas de datos en vivo del 23 de noviembre de 2026.
 
 ## Inicio rápido
 

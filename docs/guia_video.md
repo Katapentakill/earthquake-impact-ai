@@ -53,4 +53,11 @@ Sismos reales del USGS del momento de la grabación (23 de noviembre de 2026). U
 
 ## Dónde está publicado
 
-_(Se completa al subirlo.)_
+Subidos el 23 de noviembre de 2026 al canal Alexander Gubier Tapia Olmedo como **No listados** (solo los ve quien tenga el enlace); cada descripción enlaza a la otra versión. Reemplazan a los dos videos anteriores (de 2:29, que comparaban con la interfaz original), que se borraron del canal.
+
+| Subtítulos | Enlace |
+|---|---|
+| Español | <https://youtu.be/1XgrETnC1eA> |
+| English | <https://youtu.be/SQEuXKzsK_Q> |
+
+Ajustes del formulario de subida: «No, no es contenido creado para niños»; sin promoción pagada; contenido alterado o sintético: «No» (es una grabación de la app con sismos reales y sonidos sintetizados por código); idioma del video: español (Latinoamérica) e inglés (Estados Unidos). Al abrir YouTube Studio hay que cambiar a la cuenta y al canal correctos antes de subir: por defecto abre otro canal de la misma cuenta de Google, y si el navegador se reinicia a mitad de la subida el video queda como borrador (se retoma desde Contenido → Editar borrador).

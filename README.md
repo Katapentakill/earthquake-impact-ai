@@ -53,7 +53,7 @@ The original interface had blue and purple gradients on a white background, was 
 
 These are the browser build of the app (`expo start --web`) with real data; the native map and the touch behaviour have not been checked on a phone. [Details and limits](mobile/README.md).
 
-The design was prototyped first as an interactive HTML page with the same real events: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (download it and open it in a browser). A 2.5-minute walkthrough (English subtitles, no voice; the interface itself is in Spanish): [watch on YouTube](https://youtu.be/scIQnkal5zQ) ([versión en español](https://youtu.be/45RhoPXFj9A)). Screenshots are snapshots of live data from 23 November 2026.
+The design was prototyped first as an interactive HTML page with the same real events: [`docs/prototipo_visual.html`](docs/prototipo_visual.html) (download it and open it in a browser). A 4.5-minute video explaining how it works, from the USGS catalog to the web and phone interfaces, with the loading wheel while the AI estimates a quake (English subtitles, no voice; the interface itself is in Spanish; the phone part is the web build of the app at phone size): [watch on YouTube](https://youtu.be/SQEuXKzsK_Q) ([versión en español](https://youtu.be/1XgrETnC1eA)). Screenshots are snapshots of live data from 23 November 2026.
 
 ## Quick start
 
