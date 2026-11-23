@@ -1,3 +1,8 @@
+export type NivelDestruccion = 'BAJO' | 'MODERADO' | 'ALTO' | 'CATASTROFICO';
+
+/** De dónde salió la estimación de impacto: reglas simples (respaldo) o el modelo de IA. */
+export type FuenteEstimacion = 'reglas' | 'ia';
+
 export interface SeismicEvent {
   event_id: string;
   magnitud: number;
@@ -8,21 +13,27 @@ export interface SeismicEvent {
   lugar: string;
   radio_afectacion_km: number | null;
   fuente_api: string;
+  // Resumen del impacto: lo calcula el backend para la lista (nulo si el evento aún no tiene impactos)
+  nivel_destruccion?: NivelDestruccion | null;
+  muertes_estimadas?: number | null;
+  heridos_estimados?: number | null;
+  perdidas_monetarias_usd?: number | null;
+  estimacion?: FuenteEstimacion | null;
 }
 
 export interface ImpactData {
   pais: string;
-  ciudades_afectadas: string[];
+  ciudades_afectadas: string[] | null;
   muertes_estimadas: number;
   heridos_estimados: number;
   perdidas_monetarias_usd: number;
-  nivel_destruccion: 'BAJO' | 'MODERADO' | 'ALTO' | 'CATASTROFICO' | 'Bajo' | 'Moderado' | 'Alto' | 'Catastrofico';
-  fuentes_inferidas: string[];
-  razonamiento_ia?: string;  // NEW: AI reasoning explanation
-  factores_considerados?: string[];  // NEW: Factors considered by AI
-  codigo_construccion?: string;  // NEW: Building code information
-  nivel_preparacion_sismica?: string;
-  densidad_poblacional?: string;
+  nivel_destruccion: string;
+  fuentes_inferidas: string[] | null;
+  razonamiento_ia?: string | null;
+  factores_considerados?: string[] | null;
+  codigo_construccion?: string | null;
+  nivel_preparacion_sismica?: string | null;
+  densidad_poblacional?: string | null;
 }
 
 export interface EventWithImpacts {

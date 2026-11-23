@@ -1,164 +1,124 @@
 'use client';
 
-import { SeismicEvent } from '@/types';
-import { format } from 'date-fns';
+import { useMemo, useState } from 'react';
+import Icono from './Icono';
+import type { SeismicEvent } from '@/types';
+import { ETIQUETA_DESTRUCCION, ETIQUETA_PROFUNDIDAD, aCsv, claseProfundidad, indiceDestruccion, nivelMagnitud, ordenarEventos } from '@/lib/seismic';
+import type { ClaveOrden } from '@/lib/seismic';
+import { fmtCoordenadas, fmtEntero, fmtFecha, fmtMagnitud, fmtRelativo, instante } from '@/lib/format';
 
-interface EventsTableProps {
-  events: SeismicEvent[];
-  selectedEvent?: SeismicEvent | null;
-  onEventSelect?: (event: SeismicEvent) => void;
+interface Props {
+  eventos: SeismicEvent[];
+  total: number;
+  seleccionado: string | null;
+  ahora: number;
+  onElegir: (id: string) => void;
 }
 
-export default function EventsTable({ events, selectedEvent, onEventSelect }: EventsTableProps) {
-  if (events.length === 0) {
-    return (
-      <div className="text-center text-gray-500 py-12 bg-white rounded-lg border border-gray-200">
-        <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <p className="text-lg font-medium">No events found</p>
-        <p className="text-sm text-gray-400 mt-1">Try adjusting your filters</p>
-      </div>
-    );
-  }
+const COLUMNAS: { clave: ClaveOrden | null; titulo: string; derecha?: boolean }[] = [
+  { clave: 'magnitud', titulo: 'Magnitud' },
+  { clave: 'lugar', titulo: 'Lugar' },
+  { clave: 'fecha', titulo: 'Hora (UTC)' },
+  { clave: 'profundidad', titulo: 'Prof. (km)', derecha: true },
+  { clave: 'radio', titulo: 'Radio (km)', derecha: true },
+  { clave: 'impacto', titulo: 'Impacto' },
+  { clave: null, titulo: 'Coordenadas' },
+];
+
+export default function EventsTable({ eventos, total, seleccionado, ahora, onElegir }: Props) {
+  const [orden, setOrden] = useState<{ clave: ClaveOrden; dir: 1 | -1 }>({ clave: 'fecha', dir: -1 });
+  const filas = useMemo(() => ordenarEventos(eventos, orden.clave, orden.dir), [eventos, orden]);
+
+  const ordenarPor = (clave: ClaveOrden) =>
+    setOrden((o) => (o.clave === clave ? { clave, dir: (-o.dir) as 1 | -1 } : { clave, dir: clave === 'lugar' ? 1 : -1 }));
+
+  const exportar = () => {
+    const url = URL.createObjectURL(new Blob(['﻿' + aCsv(filas)], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sismos.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+    <section className="card" style={{ marginTop: 14 }} aria-labelledby="h-tabla">
+      <div className="card-h">
+        <div>
+          <h2 id="h-tabla">Todos los sismos</h2>
+          <p>
+            <span className="num">Mostrando {filas.length} de {total}</span> · ordena con los encabezados · clic en una fila para verla en el mapa
+          </p>
+        </div>
+        <button className="btn" type="button" onClick={exportar} disabled={!filas.length}>
+          <Icono nombre="bajar" /> Exportar CSV
+        </button>
+      </div>
+      <div className="tabla-wrap" tabIndex={0} role="region" aria-label="Tabla de sismos, con desplazamiento">
+        <table>
+          <thead>
             <tr>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Event ID
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Location
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Date & Time (UTC)
-              </th>
-              <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Magnitude
-              </th>
-              <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Depth (km)
-              </th>
-              <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Impact Radius (km)
-              </th>
-              <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Coordinates
-              </th>
-              <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Actions
-              </th>
+              {COLUMNAS.map((c) =>
+                c.clave ? (
+                  <th key={c.titulo} scope="col" className={c.derecha ? 'r' : ''} aria-sort={orden.clave === c.clave ? (orden.dir > 0 ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" onClick={() => ordenarPor(c.clave as ClaveOrden)}>
+                      {c.titulo} <span className="fl" aria-hidden="true">{orden.clave === c.clave && orden.dir < 0 ? '▼' : '▲'}</span>
+                    </button>
+                  </th>
+                ) : (
+                  <th key={c.titulo} scope="col" className="fijo">{c.titulo}</th>
+                ),
+              )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {events.map((event) => (
-              <tr
-                key={event.event_id}
-                onClick={() => onEventSelect?.(event)}
-                className={`cursor-pointer transition-all duration-150 ${
-                  selectedEvent?.event_id === event.event_id
-                    ? 'bg-blue-50 border-l-4 border-l-blue-500'
-                    : 'hover:bg-gray-50'
-                }`}
-              >
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                      {event.event_id}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-900 font-medium max-w-xs truncate" title={event.lugar}>
-                    {event.lugar || 'Unknown location'}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {format(new Date(event.fecha_utc), 'MMM d, yyyy')}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {format(new Date(event.fecha_utc), 'HH:mm:ss')}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-center">
-                  <span
-                    className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold text-white shadow-sm ${getMagnitudeClass(
-                      event.magnitud
-                    )}`}
-                  >
-                    {event.magnitud.toFixed(1)}
-                  </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-center">
-                  <div className="text-sm text-gray-900 font-medium">
-                    {event.profundidad.toFixed(1)}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-center">
-                  <div className="text-sm text-gray-900 font-medium">
-                    {event.radio_afectacion_km ? event.radio_afectacion_km.toFixed(1) : '-'}
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-center">
-                  <div className="text-xs text-gray-600">
-                    <div>{event.latitud.toFixed(4)}°</div>
-                    <div>{event.longitud.toFixed(4)}°</div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-center">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventSelect?.(event);
-                    }}
-                    className="inline-flex items-center px-3 py-1 border border-blue-300 rounded-md text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    View
-                  </button>
-                </td>
+          <tbody>
+            {filas.length === 0 && (
+              <tr>
+                <td colSpan={COLUMNAS.length} className="vacio">Ningún sismo cumple los filtros.</td>
               </tr>
-            ))}
+            )}
+            {filas.map((e) => {
+              const t = instante(e.fecha_utc);
+              const nivel = e.nivel_destruccion ? indiceDestruccion(e.nivel_destruccion) : null;
+              const elegido = e.event_id === seleccionado;
+              return (
+                <tr
+                  key={e.event_id}
+                  tabIndex={0}
+                  className={elegido ? 'sel' : ''}
+                  aria-selected={elegido}
+                  onClick={() => onElegir(e.event_id)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                      ev.preventDefault();
+                      onElegir(e.event_id);
+                    }
+                  }}
+                >
+                  <td><span className={`mag l${nivelMagnitud(e.magnitud)}`}>{fmtMagnitud(e.magnitud)}</span></td>
+                  <td>
+                    <div className="lugar">
+                      <b>{e.lugar}</b>
+                      <small>{e.event_id}</small>
+                    </div>
+                  </td>
+                  <td className="num">{fmtFecha(t)}<span className="sub">{fmtRelativo(t, ahora)}</span></td>
+                  <td className="r num">{fmtEntero(e.profundidad)}<span className="sub">{ETIQUETA_PROFUNDIDAD[claseProfundidad(e.profundidad)]}</span></td>
+                  <td className="r num">{e.radio_afectacion_km ? fmtEntero(e.radio_afectacion_km) : '—'}</td>
+                  <td>
+                    {nivel === null ? (
+                      <span className="nivel-chip"><i className="dot neutro" aria-hidden="true" />Pendiente</span>
+                    ) : (
+                      <span className="nivel-chip"><i className={`dot l${nivel + 1}`} aria-hidden="true" />{ETIQUETA_DESTRUCCION[nivel]}</span>
+                    )}
+                  </td>
+                  <td className="num" style={{ color: 'var(--text-2)' }}>{fmtCoordenadas(e.latitud, e.longitud)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-
-      {/* Table footer with summary */}
-      <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div>
-            Showing <span className="font-medium text-gray-900">{events.length}</span> event{events.length !== 1 ? 's' : ''}
-          </div>
-          <div className="flex items-center space-x-4">
-            <div>
-              Avg Magnitude: <span className="font-medium text-gray-900">
-                {(events.reduce((sum, e) => sum + e.magnitud, 0) / events.length).toFixed(2)}
-              </span>
-            </div>
-            <div>
-              Max Magnitude: <span className="font-medium text-gray-900">
-                {Math.max(...events.map((e) => e.magnitud)).toFixed(1)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   );
-}
-
-function getMagnitudeClass(magnitude: number): string {
-  if (magnitude >= 8) return 'bg-gradient-to-br from-red-600 to-red-800';  // Catastrophic
-  if (magnitude >= 7) return 'bg-gradient-to-br from-orange-500 to-red-600';  // High
-  if (magnitude >= 6) return 'bg-gradient-to-br from-yellow-500 to-orange-500';  // Moderate
-  if (magnitude >= 5) return 'bg-gradient-to-br from-green-500 to-yellow-500';  // Low
-  return 'bg-gradient-to-br from-blue-500 to-green-500';  // Minor
 }

@@ -8,35 +8,40 @@ type WebSocketMessage = {
 };
 
 type MessageHandler = (message: WebSocketMessage) => void;
+type StatusHandler = (conectado: boolean) => void;
 
 class WebSocketClient {
   private ws: WebSocket | null = null;
   private url: string;
   private handlers: MessageHandler[] = [];
+  private statusHandlers: StatusHandler[] = [];
   private reconnectInterval: number = 5000;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private cerrado = false;
 
   constructor(url: string) {
     this.url = url;
   }
 
   connect() {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    this.cerrado = false;
+    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
     try {
-      this.ws = new WebSocket(this.url);
+      const ws = new WebSocket(this.url);
+      this.ws = ws;
 
-      this.ws.onopen = () => {
-        console.log('WebSocket connected');
+      ws.onopen = () => {
         if (this.reconnectTimer) {
           clearTimeout(this.reconnectTimer);
           this.reconnectTimer = null;
         }
+        this.statusHandlers.forEach((h) => h(true));
       };
 
-      this.ws.onmessage = (event) => {
+      ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
           this.handlers.forEach((handler) => handler(message));
@@ -45,13 +50,9 @@ class WebSocketClient {
         }
       };
 
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      this.ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        this.scheduleReconnect();
+      ws.onclose = () => {
+        this.statusHandlers.forEach((h) => h(false));
+        if (!this.cerrado) this.scheduleReconnect();
       };
     } catch (error) {
       console.error('Error creating WebSocket:', error);
@@ -65,18 +66,22 @@ class WebSocketClient {
     }
 
     this.reconnectTimer = setTimeout(() => {
-      console.log('Attempting to reconnect WebSocket...');
+      this.reconnectTimer = null;
       this.connect();
     }, this.reconnectInterval);
   }
 
   disconnect() {
+    this.cerrado = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
 
     if (this.ws) {
+      // Sin ruido en la consola si se cierra antes de terminar de conectar (por ejemplo, en modo estricto de React).
+      this.ws.onclose = null;
+      this.ws.onerror = null;
       this.ws.close();
       this.ws = null;
     }
@@ -84,6 +89,10 @@ class WebSocketClient {
 
   onMessage(handler: MessageHandler) {
     this.handlers.push(handler);
+  }
+
+  onStatus(handler: StatusHandler) {
+    this.statusHandlers.push(handler);
   }
 
   removeHandler(handler: MessageHandler) {
