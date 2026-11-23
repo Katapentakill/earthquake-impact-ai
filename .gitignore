@@ -24,6 +24,12 @@ dist/
 # Tests
 .pytest_cache/
 
+# Video: lo que graba y monta tools/video queda fuera del repositorio
+tools/video/salida/
+*.mp4
+*.mkv
+*.wav
+
 # Configuración local de herramientas (permisos y rutas de cada equipo)
 .claude/settings.local.json
 
