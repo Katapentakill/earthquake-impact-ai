@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     fastapi_port: int = 8000
     cors_origins: str = "http://localhost:3000"
 
+    # Escribir en el log cada consulta SQL (solo para depurar; hace mucho ruido)
+    sql_echo: bool = False
+
     # Seismic calculation constants
     min_magnitude_threshold: float = 4.5  # Minimum magnitude to process
     max_depth_km: float = 700.0

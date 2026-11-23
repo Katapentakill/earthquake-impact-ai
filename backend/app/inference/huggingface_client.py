@@ -4,6 +4,7 @@ import logging
 import asyncio
 from typing import List, Dict, Any, Optional
 from app.config import settings
+from app.services.respaldo import estimacion_respaldo
 
 logger = logging.getLogger(__name__)
 
@@ -393,39 +394,6 @@ Analyze now:"""
     def _fallback_estimation(
         self, latitud: float, longitud: float, magnitud: float, profundidad: float, radio_km: float
     ) -> List[Dict[str, Any]]:
-        """Fallback estimation when AI fails"""
+        """Estimación por reglas cuando falla la IA (ver app/services/respaldo.py)."""
         logger.info("Using fallback estimation for earthquake impact")
-
-        # Simple rule-based estimation
-        if magnitud >= 7.0:
-            nivel = "ALTO"
-            muertes = int(1000 * (magnitud - 6))
-            heridos = muertes * 5
-            perdidas = int(1e9 * magnitud)
-        elif magnitud >= 6.0:
-            nivel = "MODERADO"
-            muertes = int(100 * (magnitud - 5))
-            heridos = muertes * 3
-            perdidas = int(1e8 * magnitud)
-        else:
-            nivel = "BAJO"
-            muertes = 0
-            heridos = int(10 * magnitud)
-            perdidas = int(1e6 * magnitud)
-
-        return [
-            
-            {
-                "pais": "Unknown Region",
-                "ciudades_afectadas": ["Unknown"],
-                "muertes_estimadas": muertes,
-                "heridos_estimados": heridos,
-                "perdidas_monetarias_usd": perdidas,
-                "nivel_destruccion": nivel,
-                "razonamiento": f"Fallback estimation based on magnitude {magnitud} and depth {profundidad}km. AI model unavailable.",
-                "factores_considerados": [f"Magnitude {magnitud}", f"Depth {profundidad}km", "Rule-based calculation"],
-                "fuentes_inferidas": ["Fallback estimation - AI unavailable"],
-                "nivel_preparacion_sismica": "Media",
-                "densidad_poblacional": "Media",
-            }
-        ]
+        return estimacion_respaldo(magnitud, profundidad)

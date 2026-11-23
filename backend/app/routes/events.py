@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models.seismic_event import EventoSismico, ImpactoPais, NivelDestruccion
+from app.services.resumen import resumen_impactos
 from app.services.seismic_processor import SeismicProcessor
 
 router = APIRouter(prefix="/api/events", tags=["events"])
@@ -52,6 +53,16 @@ async def get_events(
     result = await db.execute(query)
     events = result.scalars().all()
 
+    # Resumen del impacto de cada evento (nivel más alto, sumas y origen de la estimación),
+    # para que la lista no tenga que pedir el detalle de uno en uno.
+    impactos_por_evento: dict = {}
+    if events:
+        impactos = await db.execute(
+            select(ImpactoPais).where(ImpactoPais.event_id.in_([e.event_id for e in events]))
+        )
+        for impacto in impactos.scalars().all():
+            impactos_por_evento.setdefault(impacto.event_id, []).append(impacto)
+
     return {
         "total": len(events),
         "limit": limit,
@@ -67,6 +78,7 @@ async def get_events(
                 "lugar": event.lugar,
                 "radio_afectacion_km": float(event.radio_afectacion_km) if event.radio_afectacion_km else None,
                 "fuente_api": event.fuente_api,
+                **resumen_impactos(impactos_por_evento.get(event.event_id, [])),
             }
             for event in events
         ],
