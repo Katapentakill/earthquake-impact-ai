@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 # Si el modelo está cargándose (503) se espera y se reintenta, pero no para siempre.
 MAX_INTENTOS = 3
 ESPERA_503_SEGUNDOS = 20
+# Los modelos a veces devuelven un JSON que no se puede leer (por ejemplo, comillas dobles sin escapar dentro de un
+# texto): se vuelve a pedir, hasta 3 veces en total, antes de caer a las reglas. Tardar más no importa; una estimación
+# por reglas cuando la IA sí puede darla, sí.
+MAX_INTENTOS_RESPUESTA = 3
 
 
 class HuggingFaceInferenceClient:
@@ -69,30 +73,35 @@ class HuggingFaceInferenceClient:
 
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
-                for intento in range(1, MAX_INTENTOS + 1):
-                    response = await client.post(self.api_url, headers=self.headers, json=solicitud)
-                    if response.status_code == 503 and intento < MAX_INTENTOS:
-                        logger.warning(f"El modelo se está cargando; se reintenta en {ESPERA_503_SEGUNDOS} s ({intento}/{MAX_INTENTOS})")
-                        await asyncio.sleep(ESPERA_503_SEGUNDOS)
-                        continue
-                    break
+                for intento in range(1, MAX_INTENTOS_RESPUESTA + 1):
+                    result = await self._llamar(client, solicitud)
+                    texto = result.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
+                    logger.info(f"Respuesta de Hugging Face. Modelo: {result.get('model', 'desconocido')}")
 
-                response.raise_for_status()
-                result = response.json()
-                texto = result.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
-                logger.info(f"Respuesta de Hugging Face. Modelo: {result.get('model', 'desconocido')}")
+                    impactos = parsear_respuesta(texto)
+                    if impactos:
+                        return corregir_ceros(impactos, magnitud, profundidad)
+                    logger.warning(f"La IA devolvió una respuesta que no se pudo leer (intento {intento}/{MAX_INTENTOS_RESPUESTA})")
 
-                impactos = parsear_respuesta(texto)
-                if not impactos:
-                    logger.warning("La IA devolvió una respuesta vacía o inválida: se usa la estimación por reglas")
-                    return self._fallback_estimation(latitud, longitud, magnitud, profundidad, radio_km)
-                return corregir_ceros(impactos, magnitud, profundidad)
+                logger.warning("La IA no dio una respuesta válida: se usa la estimación por reglas")
 
         except httpx.HTTPStatusError as e:
             logger.error(f"Error HTTP de Hugging Face: {e.response.status_code} - {e.response.text}")
         except Exception as e:
             logger.error(f"Error al llamar a Hugging Face: {e}")
         return self._fallback_estimation(latitud, longitud, magnitud, profundidad, radio_km)
+
+    async def _llamar(self, client: httpx.AsyncClient, solicitud: Dict[str, Any]) -> Dict[str, Any]:
+        """Una llamada a la API; si el modelo se está cargando (503) espera y reintenta hasta MAX_INTENTOS veces."""
+        for intento in range(1, MAX_INTENTOS + 1):
+            response = await client.post(self.api_url, headers=self.headers, json=solicitud)
+            if response.status_code == 503 and intento < MAX_INTENTOS:
+                logger.warning(f"El modelo se está cargando; se reintenta en {ESPERA_503_SEGUNDOS} s ({intento}/{MAX_INTENTOS})")
+                await asyncio.sleep(ESPERA_503_SEGUNDOS)
+                continue
+            break
+        response.raise_for_status()
+        return response.json()
 
     def _build_system_message(self) -> str:
         """Build system message for the AI"""
@@ -202,6 +211,7 @@ Respond with a JSON array. For EACH affected country, include ALL fields below:
 9. **codigo_construccion**: Describe the building code level for that specific country
 10. Respond ONLY with the JSON array, no markdown, no extra text
 11. Write razonamiento, factores_considerados, codigo_construccion and fuentes_inferidas in SPANISH (numbers are plain digits, with no thousands separators)
+12. Inside any text value NEVER use double quotes: use single quotes or «guillemets» instead, so the JSON stays valid
 
 Analyze now:"""
 

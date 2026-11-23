@@ -207,7 +207,7 @@ class HuggingFaceInferenceClient:
         """
 ```
 
-La lectura de la respuesta del modelo está aparte, en `app/services/respuesta_ia.py` (funciones puras con pruebas): saca la lista JSON aunque venga entre ```json, repara una coma sobrante, convierte cifras escritas como texto, normaliza el nivel de destrucción y, si la IA devuelve todo en cero para un sismo que no lo justifica, corrige las cifras con magnitud, profundidad, preparación y densidad. Si el modelo está cargándose (503) se reintenta hasta 3 veces.
+La lectura de la respuesta del modelo está aparte, en `app/services/respuesta_ia.py` (funciones puras con pruebas): saca la lista JSON aunque venga entre ```json, repara una coma sobrante, convierte cifras escritas como texto, normaliza el nivel de destrucción y, si la IA devuelve todo en cero para un sismo que no lo justifica, corrige las cifras con magnitud, profundidad, preparación y densidad. Si el modelo está cargándose (503) se reintenta hasta 3 veces, y si la respuesta no se puede leer (casi siempre una comilla doble sin escapar dentro de un texto) se vuelve a pedir hasta 3 veces antes de caer a las reglas.
 
 **Modelo utilizado**: `meta-llama/Llama-3.3-70B-Instruct` (por defecto, en `app/config.py`). El modelo debe estar servido por un proveedor de Inference Providers: la lista está en https://router.huggingface.co/v1/models. `Qwen/Qwen2.5-7B-Instruct`, el anterior, ya no lo sirve ninguno. Probados el 23-nov-2026: `Qwen/Qwen2.5-72B-Instruct` (JSON válido, 11 a 13 s, razonamiento en inglés) y `meta-llama/Llama-3.3-70B-Instruct` (JSON válido, 5 a 14 s, razonamiento en español); `meta-llama/Llama-3.1-8B-Instruct` devolvió JSON roto.
 
