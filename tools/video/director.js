@@ -78,7 +78,9 @@
     anillo(x, y);
     log.push({ t: Date.now(), k: 'click', x, y, label: etiqueta });
     await sleep(60);
-    el.click();
+    // Los círculos del mapa son SVG y no tienen .click(): se les manda el evento de clic.
+    if (typeof el.click === 'function') el.click();
+    else el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
   };
   const pasear = async (puntos, ms = 900, pausa = 350) => {
     for (const [fx, fy] of puntos) { await glide(innerWidth * fx, innerHeight * fy, ms); await sleep(pausa); }
